@@ -3,12 +3,11 @@ const { musicData } = require('../../utils/musicManager');
 
 module.exports = async (client, message, args) => {
     const data = musicData.get(message.guild.id);
-    if (!data || (!data.currentTrack && data.queue.length === 0))
-        return message.reply("📋 Aucune musique en cours.");
+    if (!data || (!data.currentTrack && data.queue.length === 0)) return message.reply("📋 Aucune musique en cours.");
 
     const embed = new EmbedBuilder()
         .setTitle("📋 File d'attente")
-        .setColor("#0099FF")
+        .setColor("#FF5500")
         .setTimestamp();
 
     if (data.currentTrack) {
@@ -18,12 +17,11 @@ module.exports = async (client, message, args) => {
         });
     }
 
-    // Affiche la file seulement s'il y a des musiques en attente
     if (data.queue.length > 0) {
-        const queueList = data.queue.slice(0, 10)
+        const list = data.queue.slice(0, 10)
             .map((t, i) => `**${i + 1}.** [${t.title}](${t.url}) — ${t.duration} — par ${t.requestedBy}`)
             .join('\n');
-        embed.addFields({ name: `📋 Suivants (${data.queue.length})`, value: queueList });
+        embed.addFields({ name: `📋 Suivants (${data.queue.length})`, value: list });
         embed.setFooter({ text: `${data.queue.length} musique(s) en attente` });
     }
 

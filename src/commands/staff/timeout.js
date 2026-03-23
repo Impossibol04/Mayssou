@@ -16,6 +16,15 @@ module.exports = async (client, message, args) => {
     if (!member) return message.reply("❌ Membre introuvable sur le serveur.");
     if (member.id === message.author.id) return message.reply("❌ Tu ne peux pas te timeout toi-même.");
 
-    await member.timeout(duration * 60 * 1000);
-    message.channel.send(`🤐 **${member.user.username}** est en mode lecture seule pour **${duration} min**.`);
+    try {
+        await member.timeout(duration * 60 * 1000);
+        message.channel.send(`🤐 **${member.user.username}** est en mode lecture seule pour **${duration} min**.`);
+    } catch (error) {
+        if (error.code === 50013) {
+            message.reply("❌ Je n'ai pas les permissions pour timeout ce membre. Vérifie que mon rôle est au-dessus du sien.");
+        } else {
+            message.reply("❌ Une erreur est survenue.");
+            console.error("Erreur timeout:", error);
+        }
+    }
 };

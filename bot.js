@@ -1,19 +1,15 @@
-// ==============================
-// 📦 IMPORTS & CONFIGURATION
-// ==============================
 const { 
     Client, 
     GatewayIntentBits, 
     ActivityType, 
     Collection
 } = require("discord.js");
-
 const playdl = require('play-dl');
 const fs = require('fs');
 const config = require("./config.json");
 const path = require('path');
+const { addMessage } = require('./src/utils/statsDB');
 
-// Initialisation du Bot
 const bot = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -25,11 +21,17 @@ const bot = new Client({
 });
 
 // --- SOUNDCLOUD SETUP ---
-(async () => {
-    const clientId = await playdl.getFreeClientID();
-    await playdl.setToken({ soundcloud: { client_id: clientId } });
-    console.log("✅ SoundCloud initialisé");
-})();
+async function initSoundCloud() {
+    try {
+        const clientId = await playdl.getFreeClientID();
+        if (!clientId) throw new Error("Client ID undefined");
+        await playdl.setToken({ soundcloud: { client_id: clientId } });
+        console.log("✅ SoundCloud initialisé");
+    } catch (err) {
+        console.error("⚠️ SoundCloud init échoué, retry dans 30s:", err.message);
+        setTimeout(initSoundCloud, 30 * 1000);
+    }
+}
 
 // --- SYSTÈME DE COMMANDES ---
 bot.commands = new Collection();
@@ -45,7 +47,6 @@ const loadCommands = (dir) => {
             const commandName = file.split(".")[0];
             bot.commands.set(commandName, command);
             console.log(`✅ Commande chargée : ${commandName}`);
-
             if (command.aliases) {
                 for (const alias of command.aliases) {
                     bot.commands.set(alias, command);
@@ -58,23 +59,24 @@ const loadCommands = (dir) => {
 
 loadCommands('src/commands');
 
-// --- SNIPE ---
-bot.snipes = new Map();
-bot.on("messageDelete", (message) => {
-    if (!message.author || message.author.bot) return;
-    bot.snipes.set(message.channel.id, {
-        content: message.content,
-        author: message.author,
-        date: new Date(),
-        image: message.attachments.first()?.url || null
-    });
-});
+// --- CHARGEMENT DES EVENTS ---
+const loadEvents = () => {
+    const files = fs.readdirSync(path.join(__dirname, 'src/events')).filter(f => f.endsWith('.js'));
+    for (const file of files) {
+        const event = require(path.join(__dirname, 'src/events', file));
+        event(bot);
+        console.log(`✅ Event chargé : ${file}`);
+    }
+};
 
-// ==============================
-// 🟢 ÉVÈNEMENTS DE BASE
-// ==============================
+loadEvents();
+
 bot.once("ready", () => {
-  console.log(`
+    // SoundCloud initialisé après que le bot soit prêt
+    initSoundCloud();
+    setInterval(initSoundCloud, 60 * 60 * 1000);
+
+    console.log(`
   ███╗   ███╗ █████╗ ██╗   ██╗███████╗███████╗ ██████╗ ██╗   ██╗
   ████╗ ████║██╔══██╗╚██╗ ██╔╝██╔════╝██╔════╝██╔═══██╗██║   ██║
   ██╔████╔██║███████║ ╚████╔╝ ███████╗███████╗██║   ██║██║   ██║
@@ -86,22 +88,20 @@ bot.once("ready", () => {
   👤 Nom du projet : Mayssou
   👤 Développé par : Helios_004
   `);
-
-  bot.user.setPresence({
-    activities: [{ name: `Mange du Popcorn | ${config.prefix}help`, type: ActivityType.Watching }],
-    status: 'online',
-  });
+    bot.user.setPresence({
+        activities: [{ name: `Mange du Popcorn | ${config.prefix}help`, type: ActivityType.Watching }],
+        status: 'online',
+    });
 });
 
-// --- ÉCOUTEUR DE MESSAGES ---
 bot.on("messageCreate", async (message) => {
+    if (!message.author.bot && message.guild) {
+        addMessage(message.guild.id, message.author.id, message.channel.id);
+    }
     if (message.author.bot || !message.content.startsWith(config.prefix)) return;
-
     const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
     const commandName = args.shift().toLowerCase();
-
     const command = bot.commands.get(commandName);
-
     if (command) {
         try {
             await command(bot, message, args);

@@ -1,3 +1,6 @@
+src/data/
+data_db/
+backup/
 config.json
 package.json
 package-lock.json

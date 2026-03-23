@@ -1,4 +1,4 @@
-const { 
+const {
     createAudioResource,
     getVoiceConnection,
     joinVoiceChannel,
@@ -6,12 +6,11 @@ const {
 const playdl = require('play-dl');
 
 const SOUNDCLOUD_ICON = "https://developers.soundcloud.com/assets/logo_big_white-65c2b096da68dd533db18b9f07d14054.png";
-
 const musicData = new Map();
 const voiceTimeouts = new Map();
 
 function formatDuration(seconds) {
-    if (!seconds) return "??:??";
+    seconds = Math.floor(seconds || 0);
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
@@ -30,13 +29,8 @@ function getOrCreateConnection(voiceChannel, guildId) {
 async function playNext(guildId, channel) {
     const data = musicData.get(guildId);
     if (!data) return;
-
-    // Bloqué par +stop
     if (data.stopped) return;
-
-    if (data.loop && data.currentTrack) {
-        data.queue.unshift(data.currentTrack);
-    }
+    if (data.loop && data.currentTrack) data.queue.unshift(data.currentTrack);
 
     if (data.queue.length === 0) {
         data.currentTrack = null;
@@ -54,18 +48,14 @@ async function playNext(guildId, channel) {
 
     try {
         const stream = await playdl.stream(track.url, { quality: 2 });
-        const { createAudioResource } = require('@discordjs/voice');
-        const resource = createAudioResource(stream.stream, {
-            inputType: stream.type,
-            inlineVolume: true
-        });
+        const resource = createAudioResource(stream.stream, { inputType: stream.type, inlineVolume: true });
         resource.volume.setVolume(1);
         data.player.play(resource);
 
         const { EmbedBuilder } = require('discord.js');
         const embed = new EmbedBuilder()
             .setAuthor({ name: "SoundCloud", iconURL: SOUNDCLOUD_ICON })
-            .setTitle(track.isKaraoke ? "🎤 Mode Karaoké" : "🎵 Musique suivante")
+            .setTitle("🎵 Musique suivante")
             .setDescription(`[${track.title}](${track.url})`)
             .setThumbnail(track.thumbnail)
             .setColor("#FF5500")
@@ -77,9 +67,9 @@ async function playNext(guildId, channel) {
         channel.send({ embeds: [embed] });
     } catch (err) {
         console.error("Erreur playNext:", err);
-        channel.send("❌ Erreur lors de la lecture, passage au suivant...");
+        channel.send("❌ Erreur, passage au suivant...");
         playNext(guildId, channel);
     }
 }
 
-module.exports = { musicData, voiceTimeouts, formatDuration, getOrCreateConnection, playNext };
+module.exports = { musicData, voiceTimeouts, formatDuration, getOrCreateConnection, playNext, SOUNDCLOUD_ICON };
