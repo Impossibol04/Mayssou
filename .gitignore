@@ -1,6 +1,8 @@
+data_db/
+backup/
 config.json
-package.json
 package-lock.json
+package.json
 
 # Logs
 logs
