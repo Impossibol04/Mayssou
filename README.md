@@ -119,10 +119,16 @@ Mayssou/
 ## ⚙️ Setup
 
 1. Clone the repository
+```bash
+git clone https://github.com/Impossibol04/mayssou.git
+cd mayssou
+```
+
 2. Install dependencies
 ```bash
-npm install
+npm install discord.js @discordjs/voice play-dl genius-lyrics better-sqlite3 canvas google-tts-api
 ```
+
 3. Fill in your `config.json`
 ```json
 {
@@ -130,7 +136,12 @@ npm install
   "prefix": "+"
 }
 ```
-4. Start the bot
+
+4. Enable Privileged Intents on the [Discord Developer Portal](https://discord.com/developers/applications) :
+   - ✅ Server Members Intent
+   - ✅ Message Content Intent
+
+5. Start the bot
 ```bash
 node bot.js
 ```
@@ -250,10 +261,16 @@ Mayssou/
 ## ⚙️ Installation
 
 1. Cloner le dépôt
+```bash
+git clone https://github.com/Impossibol04/mayssou.git
+cd mayssou
+```
+
 2. Installer les dépendances
 ```bash
-npm install
+npm install discord.js @discordjs/voice play-dl genius-lyrics better-sqlite3 canvas google-tts-api
 ```
+
 3. Remplir le `config.json`
 ```json
 {
@@ -261,7 +278,12 @@ npm install
   "prefix": "+"
 }
 ```
-4. Lancer le bot
+
+4. Activer les Privileged Intents sur le [Portail Développeur Discord](https://discord.com/developers/applications) :
+   - ✅ Server Members Intent
+   - ✅ Message Content Intent
+
+5. Lancer le bot
 ```bash
 node bot.js
 ```
