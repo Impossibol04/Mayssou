@@ -1,5 +1,6 @@
 data_db/
 backup/
+src/data
 config.json
 package-lock.json
 package.json
