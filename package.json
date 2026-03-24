@@ -21,6 +21,7 @@
     "genius-lyrics": "^4.4.7",
     "google-tts-api": "^2.0.2",
     "libsodium-wrappers": "^0.8.2",
-    "opusscript": "^0.0.8"
+    "opusscript": "^0.0.8",
+    "play-dl": "^1.9.7"
   }
 }
