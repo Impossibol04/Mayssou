@@ -1,2 +1,8 @@
 [phases.setup]
-nixPkgs = ["fontconfig", "freetype", "ffmpeg"]
+# On installe fontconfig pour la gestion des polices et dejavu_fonts pour avoir une base
+nixPkgs = ["fontconfig", "freetype", "ffmpeg", "dejavu_fonts"]
+
+[phases.build]
+# On rafraîchit le cache des polices au moment du build sur Railway
+# IMPORTANT : Remplace "npm install" par ta commande si tu en utilises une autre
+cmds = ["fc-cache -f -v", "npm install"]
