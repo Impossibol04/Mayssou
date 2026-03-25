@@ -3,8 +3,8 @@ const https = require('https');
 const path = require('path');
 
 // On enregistre les polices avec un chemin absolu pour éviter les erreurs sur Railway
-registerFont(path.join(__dirname, 'fonts/Inter_28pt-SemiBold.ttf'), { family: 'InterCustom', weight: 'bold' });
-registerFont(path.join(__dirname, 'fonts/Inter_28pt-Medium.ttf'), { family: 'InterCustom', weight: 'normal' });
+registerFont(path.join(__dirname, '../fonts/Inter_28pt-SemiBold.ttf'), { family: 'InterCustom', weight: 'bold' });
+registerFont(path.join(__dirname, '../fonts/Inter_28pt-Medium.ttf'), { family: 'InterCustom', weight: 'normal' });
 
 const W = 900;
 const H = 420;
