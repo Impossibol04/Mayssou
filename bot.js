@@ -6,6 +6,7 @@ const {
 } = require("discord.js");
 const playdl = require('play-dl');
 const fs = require('fs');
+const { registerFont } = require('canvas');
 //const config = require("./config.json");
 
 // On enregistre les polices avec un chemin absolu pour éviter les erreurs sur Railway
