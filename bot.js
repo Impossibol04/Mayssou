@@ -10,8 +10,8 @@ const fs = require('fs');
 
 // pour le deployement du bot sur railway ou d'autre service
 const config = {
-    token: process.env.DISCORD_TOKEN,
-    prefix: process.env.PREFIX
+    token: process.env.token,
+    prefix: process.env.prefix
 };
 
 const path = require('path');
