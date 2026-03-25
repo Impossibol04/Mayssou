@@ -2,7 +2,7 @@
 
 # 🤖 Mayssou — Discord Bot
 
-**[English](#english) • [Français](#français)**
+**[🇬🇧 English](#-english-version) • [🇫🇷 Français](#-version-française)**
 
 </div>
 
