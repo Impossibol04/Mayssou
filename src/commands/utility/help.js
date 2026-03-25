@@ -1,5 +1,9 @@
 const { EmbedBuilder } = require('discord.js');
-const config = require('../../../config.json');
+//const config = require('../../../config.json');
+const config = {
+    token: process.env.token,
+    prefix: process.env.prefix
+};
 
 module.exports = async (client, message, args) => {
     await message.delete().catch(() => {});
