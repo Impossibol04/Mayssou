@@ -1,4 +1,8 @@
-const { createCanvas } = require('canvas');
+const { createCanvas, registerFont } = require('canvas');
+
+// On enregistre les polices avec un chemin absolu pour éviter les erreurs sur Railway
+registerFont(path.join(__dirname, 'fonts/Inter_28pt-SemiBold.ttf'), { family: 'InterCustom', weight: 'bold' });
+registerFont(path.join(__dirname, 'fonts/Inter_28pt-Medium.ttf'), { family: 'InterCustom', weight: 'normal' });
 
 const W = 700;
 const H = 520;
