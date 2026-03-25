@@ -3,6 +3,7 @@ const { createAudioPlayer, createAudioResource, AudioPlayerStatus, NoSubscriberB
 const playdl = require('play-dl');
 const { musicData, voiceTimeouts, formatDuration, getOrCreateConnection, playNext, SOUNDCLOUD_ICON } = require('../../utils/musicManager');
 const { getLyrics, splitLyrics } = require('../../utils/lyrics');
+process.env.FFMPEG_PATH = require('ffmpeg-static');
 
 // Recherche avec retry automatique
 async function searchWithRetry(query, retries = 3) {
