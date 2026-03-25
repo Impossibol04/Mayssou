@@ -2,7 +2,7 @@ src/data/
 data_db/
 backup/
 config.json
-
+desktop.ini
 package-lock.json
 
 # Logs
