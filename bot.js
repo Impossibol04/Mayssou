@@ -6,7 +6,14 @@ const {
 } = require("discord.js");
 const playdl = require('play-dl');
 const fs = require('fs');
-const config = require("./config.json");
+//const config = require("./config.json");
+
+// pour le deployement du bot sur railway ou d'autre service
+const config = {
+    token: process.env.DISCORD_TOKEN,
+    prefix: process.env.PREFIX
+};
+
 const path = require('path');
 const { addMessage } = require('./src/utils/statsDB');
 
