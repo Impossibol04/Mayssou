@@ -10,8 +10,8 @@ const { registerFont } = require('canvas');
 //const config = require("./config.json");
 
 // On enregistre les polices avec un chemin absolu pour éviter les erreurs sur Railway
-registerFont(path.join(__dirname, 'src/fonts/Inter_28pt-SemiBold.ttf'), { family: 'InterCustom', weight: 'bold' });
-registerFont(path.join(__dirname, 'src/fonts/Inter_28pt-Medium.ttf'), { family: 'InterCustom', weight: 'normal' });
+registerFont(path.join(__dirname, 'fonts/Inter_28pt-SemiBold.ttf'), { family: 'InterCustom', weight: 'bold' });
+registerFont(path.join(__dirname, 'fonts/Inter_28pt-Medium.ttf'), { family: 'InterCustom', weight: 'normal' });
 
 // pour le deployement du bot sur railway ou d'autre service
 const config = {
