@@ -8,8 +8,8 @@
 
 ---
 
-<a name="english"></a>
-# 🇬🇧 English
+<details open>
+<summary><h2>🇬🇧 English version</h2></summary>
 
 A feature-rich Discord bot built with **JavaScript** and **Node.js**, offering moderation tools, fun interactions, music playback, stats tracking, and more.
 
@@ -170,8 +170,10 @@ node bot.js
 
 ---
 
-<a name="français"></a>
-# 🇫🇷 Français
+</details>
+
+<details open>
+<summary><h2>🇫🇷 Version française</h2></summary>
 
 Un bot Discord complet développé avec **JavaScript** et **Node.js**, offrant des outils de modération, des interactions fun, de la musique, un suivi des statistiques et bien plus.
 
@@ -329,3 +331,4 @@ node bot.js
 ---
 
 > Développé avec ❤️ par [Impossibol](https://github.com/Impossibol04)
+</details>
