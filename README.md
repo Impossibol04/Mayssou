@@ -2,14 +2,14 @@
 
 # 🤖 Mayssou — Discord Bot
 
-**[English](#english) • [Français](#français)**
+**[🇬🇧 English](#-english-version) • [🇫🇷 Français](#-version-française)**
 
 </div>
 
 ---
 
-<a name="english"></a>
-# 🇬🇧 English
+<details open>
+<summary><h2>🇬🇧 English version</h2></summary>
 
 A feature-rich Discord bot built with **JavaScript** and **Node.js**, offering moderation tools, fun interactions, music playback, stats tracking, and more.
 
@@ -101,11 +101,11 @@ A feature-rich Discord bot built with **JavaScript** and **Node.js**, offering m
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
 
 ## 📁 Project Structure
-
 ```
 Mayssou/
 ├── bot.js                  # Entry point
-├── config.json             # Bot configuration
+├── nixpacks.toml           # Railway build config (fonts, ffmpeg)
+├── package.json
 └── src/
     ├── commands/
     │   ├── fun/
@@ -113,23 +113,24 @@ Mayssou/
     │   ├── utility/
     │   └── voice/
     ├── events/
+    ├── fonts/
     └── utils/
 ```
 
-## ⚙️ Setup
+## ⚙️ Local Setup
 
 1. Clone the repository
 ```bash
-git clone https://github.com/Impossibol04/mayssou.git
-cd mayssou
+git clone https://github.com/Impossibol04/Mayssou.git
+cd Mayssou
 ```
 
 2. Install dependencies
 ```bash
-npm install discord.js @discordjs/voice play-dl genius-lyrics better-sqlite3 canvas google-tts-api
+npm install
 ```
 
-3. Fill in your `config.json`
+3. Create a `config.json` file at the root (**never commit this file**)
 ```json
 {
   "token": "YOUR_BOT_TOKEN",
@@ -137,7 +138,7 @@ npm install discord.js @discordjs/voice play-dl genius-lyrics better-sqlite3 can
 }
 ```
 
-4. Enable Privileged Intents on the [Discord Developer Portal](https://discord.com/developers/applications) :
+4. Enable Privileged Intents on the [Discord Developer Portal](https://discord.com/developers/applications):
    - ✅ Server Members Intent
    - ✅ Message Content Intent
 
@@ -146,12 +147,33 @@ npm install discord.js @discordjs/voice play-dl genius-lyrics better-sqlite3 can
 node bot.js
 ```
 
+## 🚀 Deploy on Railway
+
+1. Fork or import this repo on [Railway](https://railway.app)
+
+2. In your service, go to **Variables** and add:
+
+| Key | Value |
+|-----|-------|
+| `token` | Your Discord bot token |
+| `prefix` | Your prefix (e.g. `+`) |
+
+> 🔒 Your token is stored securely as an environment variable — it never appears in the code or on GitHub.
+
+3. Railway will automatically detect `nixpacks.toml` and install the required system packages (fonts, ffmpeg).
+
+4. The bot will start automatically on every push to `main`. ✅
+
+---
+
 > Built with ❤️ by [Impossibol](https://github.com/Impossibol04)
 
 ---
 
-<a name="français"></a>
-# 🇫🇷 Français
+</details>
+
+<details open>
+<summary><h2>🇫🇷 Version française</h2></summary>
 
 Un bot Discord complet développé avec **JavaScript** et **Node.js**, offrant des outils de modération, des interactions fun, de la musique, un suivi des statistiques et bien plus.
 
@@ -243,11 +265,11 @@ Un bot Discord complet développé avec **JavaScript** et **Node.js**, offrant d
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
 
 ## 📁 Structure du Projet
-
 ```
 Mayssou/
 ├── bot.js                  # Point d'entrée
-├── config.json             # Configuration du bot
+├── nixpacks.toml           # Config Railway (polices, ffmpeg)
+├── package.json
 └── src/
     ├── commands/
     │   ├── fun/
@@ -255,23 +277,24 @@ Mayssou/
     │   ├── utility/
     │   └── voice/
     ├── events/
+    ├── fonts/
     └── utils/
 ```
 
-## ⚙️ Installation
+## ⚙️ Installation en local
 
 1. Cloner le dépôt
 ```bash
-git clone https://github.com/Impossibol04/mayssou.git
-cd mayssou
+git clone https://github.com/Impossibol04/Mayssou.git
+cd Mayssou
 ```
 
 2. Installer les dépendances
 ```bash
-npm install discord.js @discordjs/voice play-dl genius-lyrics better-sqlite3 canvas google-tts-api
+npm install
 ```
 
-3. Remplir le `config.json`
+3. Créer un fichier `config.json` à la racine (**ne jamais commit ce fichier**)
 ```json
 {
   "token": "TON_TOKEN_BOT",
@@ -288,4 +311,24 @@ npm install discord.js @discordjs/voice play-dl genius-lyrics better-sqlite3 can
 node bot.js
 ```
 
+## 🚀 Déployer sur Railway
+
+1. Forker ou importer ce repo sur [Railway](https://railway.app)
+
+2. Dans ton service, va dans **Variables** et ajoute :
+
+| Clé | Valeur |
+|-----|--------|
+| `token` | Ton token de bot Discord |
+| `prefix` | Ton préfixe (ex: `+`) |
+
+> 🔒 Ton token est stocké de manière sécurisée en variable d'environnement — il n'apparaît jamais dans le code ni sur GitHub.
+
+3. Railway détecte automatiquement le `nixpacks.toml` et installe les paquets système nécessaires (polices, ffmpeg).
+
+4. Le bot se lance automatiquement à chaque push sur `main`. ✅
+
+---
+
 > Développé avec ❤️ par [Impossibol](https://github.com/Impossibol04)
+</details>
