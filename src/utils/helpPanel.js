@@ -141,9 +141,10 @@ function buildCategoryEmbed(key) {
         voice: {
             title: '🎙️ Vocal',
             body: [
+                '**Message privé** — dès que tu crées un vocal via le hub, le bot t’envoie un **panneau** (renom, limite, exclure, bloquer) **visible seulement par toi**. Active tes MP.',
                 `${pre('tts')} / \`/tts\` — texte (dans un vocal)`,
                 `${pre('voicename')} / \`/voicename\` — **vocal temporaire** dont tu es propriétaire`,
-                `${pre('voicelimit')} / \`/voicelimit\` — limite + **boutons** rapides`,
+                `${pre('voicelimit')} / \`/voicelimit\` — limite + **boutons** sur le salon texte`,
                 'Les vocaux temporaires viennent du hub **`setjoinvoice`**.',
             ].join('\n'),
         },

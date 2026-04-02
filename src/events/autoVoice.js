@@ -1,6 +1,7 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { getGuildConfig } = require('../utils/guildConfig');
 const { loadTempVoiceMap, saveTempVoiceMap } = require('../utils/tempVoiceStore');
+const { sendVoiceOwnerPanel } = require('../utils/voiceOwnerPanel');
 
 // Map des vocaux temporaires : channelId → ownerId (persisté sur disque)
 const tempVoices = loadTempVoiceMap();
@@ -60,6 +61,9 @@ module.exports = (bot) => {
                 tempVoices.set(newChannel.id, member.id);
                 saveTempVoiceMap(tempVoices);
                 await member.voice.setChannel(newChannel);
+                await sendVoiceOwnerPanel(bot, member, newChannel).catch((e) =>
+                    console.error('Panneau propriétaire vocal (MP):', e)
+                );
             } catch (err) {
                 console.error("Erreur création vocal temporaire:", err);
             }

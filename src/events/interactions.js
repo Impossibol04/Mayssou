@@ -3,6 +3,7 @@ const { createSlashMessageAdapter } = require('../utils/slashAdapter');
 const slashRegistry = require('../slash/registry');
 const { applyVoiceUserLimit, buildVoicelimitButtonRow } = require('../utils/voiceLimitShared');
 const { HELP_SELECT_ID, buildHelpPayload } = require('../utils/helpPanel');
+const { handleVoiceOwnerPanelInteraction } = require('../utils/voiceOwnerPanel');
 
 async function registerSlashCommands(client) {
     const token = process.env.token;
@@ -81,6 +82,14 @@ module.exports = (bot) => {
                 } catch (_) {}
             }
             return;
+        }
+
+        if (
+            (interaction.isButton() && interaction.customId.startsWith('vcp:')) ||
+            (interaction.isModalSubmit() && interaction.customId.startsWith('vcp:m:'))
+        ) {
+            const handled = await handleVoiceOwnerPanelInteraction(bot, interaction);
+            if (handled) return;
         }
 
         if (interaction.isStringSelectMenu() && interaction.customId === HELP_SELECT_ID) {
