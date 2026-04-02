@@ -96,7 +96,7 @@ bot.once("ready", () => {
   👤 Développé par : Helios_004
   `);
     bot.user.setPresence({
-        activities: [{ name: `Mange du Popcorn | ${config.prefix}help`, type: ActivityType.Watching }],
+        activities: [{ name: `Mange du Popcorn | /help • ${config.prefix}help`, type: ActivityType.Watching }],
         status: 'online',
     });
 });

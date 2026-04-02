@@ -20,7 +20,7 @@ module.exports = async (client, message, args) => {
             { name: "🤫 Social", value: "`confess <message>`, `poll <question>`" },
             { name: "✨ Fun", value: "`8ball`, `avatar`, `banner`, `love`, `rate`, `gay`, `67`" }
         )
-        .setFooter({ text: `Prefix: ${config.prefix} • Développé par Helios_004` })
+        .setFooter({ text: `Prefix: ${config.prefix} ou commandes / (slash) • Développé par Helios_004` })
         .setTimestamp();
 
     message.channel.send({ embeds: [helpEmbed] });
