@@ -11,6 +11,8 @@ function readConfig() {
 
 // Sauvegarde toute la config
 function writeConfig(data) {
+    const dir = path.dirname(CONFIG_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(data, null, 2));
 }
 

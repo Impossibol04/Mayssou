@@ -18,9 +18,11 @@ module.exports = async (client, message, args) => {
         }
     }
 
-    const category = message.mentions.channels.first()
-        || (args[0] ? message.guild.channels.cache.get(args[0]) : null)
-        || null;
+    let category = message.mentions.channels.first() || null;
+    if (!category && args[0]) {
+        category = message.guild.channels.cache.get(args[0])
+            || await message.guild.channels.fetch(args[0]).catch(() => null);
+    }
 
     try {
         const hubChannel = await message.guild.channels.create({

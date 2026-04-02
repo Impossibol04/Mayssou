@@ -1,11 +1,24 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { getGuildConfig } = require('../utils/guildConfig');
+const { loadTempVoiceMap, saveTempVoiceMap } = require('../utils/tempVoiceStore');
 
-// Map des vocaux temporaires : channelId → ownerId
-const tempVoices = new Map();
+// Map des vocaux temporaires : channelId → ownerId (persisté sur disque)
+const tempVoices = loadTempVoiceMap();
 
 module.exports = (bot) => {
     bot.voiceSessions = bot.voiceSessions || new Map();
+    bot.tempVoices = tempVoices;
+
+    bot.once('ready', () => {
+        let changed = false;
+        for (const channelId of [...tempVoices.keys()]) {
+            if (!bot.channels.cache.has(channelId)) {
+                tempVoices.delete(channelId);
+                changed = true;
+            }
+        }
+        if (changed) saveTempVoiceMap(tempVoices);
+    });
 
     bot.on('voiceStateUpdate', async (oldState, newState) => {
         const guildId = newState.guild?.id || oldState.guild?.id;
@@ -45,6 +58,7 @@ module.exports = (bot) => {
                 });
 
                 tempVoices.set(newChannel.id, member.id);
+                saveTempVoiceMap(tempVoices);
                 await member.voice.setChannel(newChannel);
             } catch (err) {
                 console.error("Erreur création vocal temporaire:", err);
@@ -59,10 +73,8 @@ module.exports = (bot) => {
             if (channel && channel.members.size === 0) {
                 await channel.delete().catch(() => {});
                 tempVoices.delete(oldState.channelId);
+                saveTempVoiceMap(tempVoices);
             }
         }
     });
-
-    // Expose la map pour voicename.js
-    bot.tempVoices = tempVoices;
 };

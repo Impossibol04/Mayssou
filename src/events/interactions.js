@@ -2,6 +2,7 @@ const { REST, Routes } = require('discord.js');
 const { createSlashMessageAdapter } = require('../utils/slashAdapter');
 const slashRegistry = require('../slash/registry');
 const { applyVoiceUserLimit, buildVoicelimitButtonRow } = require('../utils/voiceLimitShared');
+const { HELP_SELECT_ID, buildHelpPayload } = require('../utils/helpPanel');
 
 async function registerSlashCommands(client) {
     const token = process.env.token;
@@ -78,6 +79,17 @@ module.exports = (bot) => {
                 try {
                     await interaction.followUp({ ephemeral: true, content: "❌ Impossible de mettre à jour le message." });
                 } catch (_) {}
+            }
+            return;
+        }
+
+        if (interaction.isStringSelectMenu() && interaction.customId === HELP_SELECT_ID) {
+            const cat = interaction.values[0];
+            try {
+                await interaction.update(buildHelpPayload(cat));
+            } catch (err) {
+                console.error('help select:', err);
+                await interaction.reply({ ephemeral: true, content: '❌ Impossible de mettre à jour l’aide.' }).catch(() => {});
             }
             return;
         }

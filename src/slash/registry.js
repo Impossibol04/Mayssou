@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, ChannelType, Collection } = require('discord.js');
+const { buildHelpPayload, resolveHelpCategory } = require('../utils/helpPanel');
 
 /**
  * Chaque entrée : commande / slash → même handler que le préfixe (via slashAdapter).
@@ -6,9 +7,28 @@ const { SlashCommandBuilder, ChannelType, Collection } = require('discord.js');
  */
 module.exports = [
     {
-        data: new SlashCommandBuilder().setName('help').setDescription('Afficher l’aide du bot'),
-        commandName: 'help',
-        toArgs: () => [],
+        data: new SlashCommandBuilder()
+            .setName('help')
+            .setDescription('Aide du bot (menu par catégorie)')
+            .addStringOption((o) =>
+                o.setName('categorie')
+                    .setDescription('Ouvrir directement une rubrique')
+                    .setRequired(false)
+                    .addChoices(
+                        { name: '🏠 Accueil', value: 'home' },
+                        { name: '🛡️ Modération', value: 'moderation' },
+                        { name: '⚙️ Configuration', value: 'config' },
+                        { name: '🤓 Utilitaire', value: 'utility' },
+                        { name: '🎵 Musique', value: 'music' },
+                        { name: '🎙️ Vocal', value: 'voice' },
+                        { name: '🤫 Social', value: 'social' },
+                        { name: '✨ Fun', value: 'fun' }
+                    )),
+        customExecute: async (bot, interaction) => {
+            const raw = interaction.options.getString('categorie');
+            const cat = resolveHelpCategory(raw || 'home');
+            await interaction.reply(buildHelpPayload(cat));
+        },
     },
     {
         data: new SlashCommandBuilder().setName('ping').setDescription('Latence du bot'),
