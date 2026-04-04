@@ -7,6 +7,7 @@ const {
     TextInputBuilder,
     TextInputStyle,
     MessageFlags,
+    PermissionFlagsBits,
 } = require('discord.js');
 const { applyVoiceUserLimit, PRESET_LIMITS } = require('./voiceLimitShared');
 
@@ -71,16 +72,24 @@ function buildOwnerComponents(channelId) {
 async function sendVoiceOwnerPanel(client, member, voiceChannel) {
     const embed = buildOwnerEmbed(voiceChannel, member.guild);
     const components = buildOwnerComponents(voiceChannel.id);
+
+    if (voiceChannel.isTextBased && voiceChannel.isTextBased()) {
+        try {
+            await voiceChannel.send({
+                content: `${member} — voici le panneau de contrôle de ton salon vocal temporaire :`,
+                embeds: [embed],
+                components,
+            });
+            return;
+        } catch (error) {
+            console.error('sendVoiceOwnerPanel voiceChannel send failed:', error);
+        }
+    }
+
     try {
         await member.user.send({ embeds: [embed], components });
-    } catch {
-        if (typeof voiceChannel.send === 'function') {
-            await voiceChannel
-                .send({
-                    content: `${member} — **Ouvre tes messages privés** avec le bot : je t’envoie le panneau de contrôle là-bas (réservé à toi). Sans MP, je ne peux pas afficher ce panneau en privé.`,
-                })
-                .catch(() => {});
-        }
+    } catch (error) {
+        console.error('sendVoiceOwnerPanel DM failed:', error);
     }
 }
 

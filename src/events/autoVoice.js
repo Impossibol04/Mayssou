@@ -49,6 +49,31 @@ module.exports = (bot) => {
         // ===========================
         if (newState.channelId === hubId) {
             let newChannel = null;
+
+            // Évite de créer deux vocaux privés pour le même membre
+            const existingEntry = [...tempVoices.entries()].find(([, ownerId]) => ownerId === member.id);
+            if (existingEntry) {
+                const [existingChannelId] = existingEntry;
+                const existingChannel =
+                    guild.channels.cache.get(existingChannelId) || (await guild.channels.fetch(existingChannelId).catch(() => null));
+
+                if (existingChannel) {
+                    if (existingChannel.members.size === 0) {
+                        await existingChannel.delete().catch(() => {});
+                        tempVoices.delete(existingChannelId);
+                        saveTempVoiceMap(tempVoices);
+                    } else {
+                        console.warn(
+                            `[autoVoice] Un vocal privé existe déjà pour ${member.user.tag} (${member.id}), pas de nouveau salon créé.`
+                        );
+                        return;
+                    }
+                } else {
+                    tempVoices.delete(existingChannelId);
+                    saveTempVoiceMap(tempVoices);
+                }
+            }
+
             try {
                 const hubChannel =
                     guild.channels.cache.get(hubId) || (await guild.channels.fetch(hubId).catch(() => null));

@@ -101,6 +101,9 @@ bot.once("ready", () => {
     });
 });
 
+bot.on('error', (error) => console.error('Discord client error:', error));
+bot.on('warn', (warning) => console.warn('Discord warning:', warning));
+
 bot.on("messageCreate", async (message) => {
     if (!message.author.bot && message.guild) {
         addMessage(message.guild.id, message.author.id, message.channel.id);
