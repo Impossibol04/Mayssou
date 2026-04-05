@@ -1,9 +1,9 @@
 const { REST, Routes } = require('discord.js');
 const { createSlashMessageAdapter } = require('../utils/slashAdapter');
 const slashRegistry = require('../slash/registry');
-const { applyVoiceUserLimit, buildVoicelimitButtonRow } = require('../utils/voiceLimitShared');
-const { HELP_SELECT_ID, buildHelpPayload } = require('../utils/helpPanel');
-const { handleVoiceOwnerPanelInteraction } = require('../utils/voiceOwnerPanel');
+const { applyVoiceUserLimit, buildVoicelimitButtonRow } = require('../components/voiceLimitShared');
+const { HELP_SELECT_ID, buildHelpPayload } = require('../components/helpPanel');
+const { handleVoiceOwnerPanelInteraction } = require('../components/voiceOwnerPanel');
 
 async function registerSlashCommands(client) {
     const token = process.env.token;
