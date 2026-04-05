@@ -124,17 +124,28 @@ bot.on("messageCreate", async (message) => {
     const command = bot.commands.get(commandName);
     
     if (command) {
-        // 💡 MODIFICATION ICI : On utilise command.name pour toujours avoir le vrai nom (défini lors du loadCommands)
         const realCommandName = command.name || commandName;
 
-        const remaining = checkCooldown(realCommandName, message.author.id);
+        // --- CONFIGURATION DU COOLDOWN UNIVERSEL ---
+        // On prend 3 secondes par défaut pour TOUTES les commandes.
+        // Si tu ajoutes "cooldown: 10" dans un fichier de commande, il prendra 10 à la place.
+        const cooldownAmount = command.cooldown !== undefined ? command.cooldown : 3; 
+
+        // On vérifie le cooldown en passant le temps calculé
+        const remaining = checkCooldown(realCommandName, message.author.id, cooldownAmount);
         
         if (remaining) {
             return message.reply(`⏳ Attends encore **${remaining}s** avant de refaire \`${config.prefix}${realCommandName}\`.`);
         }
+        // --------------------------------------------
         
         try {
-            await command(bot, message, args);
+            // Exécution de la commande (gère les fonctions simples ou les objets avec .run)
+            if (typeof command === 'function') {
+                await command(bot, message, args);
+            } else if (command.run) {
+                await command.run(bot, message, args);
+            }
         } catch (error) {
             console.error(error);
             message.reply("❌ Une erreur est survenue dans cette commande.");
