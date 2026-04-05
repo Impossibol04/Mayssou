@@ -16,6 +16,7 @@ const config = {
 
 const path = require('path');
 const { addMessage } = require('./src/utils/statsDB');
+const { checkCooldown } = require('./src/utils/cooldown');
 
 const bot = new Client({
     intents: [
@@ -52,8 +53,13 @@ const loadCommands = (dir) => {
         } else if (file.endsWith(".js")) {
             const command = require(path.join(__dirname, dir, file));
             const commandName = file.split(".")[0];
+            
+            // 💡 ASTUCE : On force l'ajout du nom de la commande dans l'objet pour s'en resservir plus tard
+            if (!command.name) command.name = commandName;
+
             bot.commands.set(commandName, command);
             console.log(`✅ Commande chargée : ${commandName}`);
+            
             if (command.aliases) {
                 for (const alias of command.aliases) {
                     bot.commands.set(alias, command);
@@ -79,7 +85,6 @@ const loadEvents = () => {
 loadEvents();
 
 bot.once("ready", () => {
-    // SoundCloud initialisé après que le bot soit prêt
     initSoundCloud();
     setInterval(initSoundCloud, 60 * 60 * 1000);
 
@@ -104,15 +109,30 @@ bot.once("ready", () => {
 bot.on('error', (error) => console.error('Discord client error:', error));
 bot.on('warn', (warning) => console.warn('Discord warning:', warning));
 
+process.on('unhandledRejection', (reason) => console.error('Rejet non catché:', reason));
+process.on('uncaughtException', (err) => console.error('Exception non catchée:', err));
+
 bot.on("messageCreate", async (message) => {
     if (!message.author.bot && message.guild) {
         addMessage(message.guild.id, message.author.id, message.channel.id);
     }
+    
     if (message.author.bot || !message.content.startsWith(config.prefix)) return;
+    
     const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
     const commandName = args.shift().toLowerCase();
     const command = bot.commands.get(commandName);
+    
     if (command) {
+        // 💡 MODIFICATION ICI : On utilise command.name pour toujours avoir le vrai nom (défini lors du loadCommands)
+        const realCommandName = command.name || commandName;
+
+        const remaining = checkCooldown(realCommandName, message.author.id);
+        
+        if (remaining) {
+            return message.reply(`⏳ Attends encore **${remaining}s** avant de refaire \`${config.prefix}${realCommandName}\`.`);
+        }
+        
         try {
             await command(bot, message, args);
         } catch (error) {

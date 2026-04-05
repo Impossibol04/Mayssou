@@ -3,22 +3,38 @@ const { getGuildConfig } = require('../utils/guildConfig');
 const { loadTempVoiceMap, saveTempVoiceMap } = require('../utils/tempVoiceStore');
 const { sendVoiceOwnerPanel } = require('../utils/voiceOwnerPanel');
 
-// Map des vocaux temporaires : channelId → ownerId (persisté sur disque)
 const tempVoices = loadTempVoiceMap();
 
 module.exports = (bot) => {
     bot.voiceSessions = bot.voiceSessions || new Map();
     bot.tempVoices = tempVoices;
 
-    bot.once('ready', () => {
+    bot.once('ready', async () => {
         let changed = false;
+
+        // Nettoie les vocaux temporaires qui n'existent plus
         for (const channelId of [...tempVoices.keys()]) {
-            if (!bot.channels.cache.has(channelId)) {
+            const ch = bot.channels.cache.get(channelId)
+                || await bot.channels.fetch(channelId).catch(() => null);
+            if (!ch) {
                 tempVoices.delete(channelId);
                 changed = true;
             }
         }
         if (changed) saveTempVoiceMap(tempVoices);
+
+        // Vérifie que les hubs configurés existent encore
+        for (const guild of bot.guilds.cache.values()) {
+            const cfg = getGuildConfig(guild.id);
+            if (!cfg.joinVoiceChannel) continue;
+            const hub = guild.channels.cache.get(cfg.joinVoiceChannel)
+                || await guild.channels.fetch(cfg.joinVoiceChannel).catch(() => null);
+            if (!hub) {
+                console.warn(`[autoVoice] Hub introuvable sur ${guild.name} (${guild.id}) — reconfigure avec +setjoinvoice`);
+            } else {
+                console.log(`[autoVoice] Hub OK : "${hub.name}" sur ${guild.name}`);
+            }
+        }
     });
 
     bot.on('voiceStateUpdate', async (oldState, newState) => {
@@ -28,17 +44,15 @@ module.exports = (bot) => {
         if (!hubRaw) return;
 
         const hubId = String(hubRaw);
-
         const guild = newState.guild || oldState.guild;
         let member = newState.member || oldState.member;
         const userId = newState.id;
 
-        // Membre souvent absent du cache (compte peu actif) → fetch obligatoire
         if (!member && userId) {
             try {
                 member = await guild.members.fetch({ user: userId, force: true });
             } catch (e) {
-                console.error(`[autoVoice] Impossible de charger le membre ${userId} sur ${guild.id}:`, e.message);
+                console.error(`[autoVoice] Impossible de charger le membre ${userId}:`, e.message);
                 return;
             }
         }
@@ -50,12 +64,12 @@ module.exports = (bot) => {
         if (newState.channelId === hubId) {
             let newChannel = null;
 
-            // Évite de créer deux vocaux privés pour le même membre
+            // Évite de créer deux vocaux pour le même membre
             const existingEntry = [...tempVoices.entries()].find(([, ownerId]) => ownerId === member.id);
             if (existingEntry) {
                 const [existingChannelId] = existingEntry;
-                const existingChannel =
-                    guild.channels.cache.get(existingChannelId) || (await guild.channels.fetch(existingChannelId).catch(() => null));
+                const existingChannel = guild.channels.cache.get(existingChannelId)
+                    || await guild.channels.fetch(existingChannelId).catch(() => null);
 
                 if (existingChannel) {
                     if (existingChannel.members.size === 0) {
@@ -63,9 +77,6 @@ module.exports = (bot) => {
                         tempVoices.delete(existingChannelId);
                         saveTempVoiceMap(tempVoices);
                     } else {
-                        console.warn(
-                            `[autoVoice] Un vocal privé existe déjà pour ${member.user.tag} (${member.id}), pas de nouveau salon créé.`
-                        );
                         return;
                     }
                 } else {
@@ -75,8 +86,9 @@ module.exports = (bot) => {
             }
 
             try {
-                const hubChannel =
-                    guild.channels.cache.get(hubId) || (await guild.channels.fetch(hubId).catch(() => null));
+                // Fetch le hub pour avoir sa catégorie même si pas en cache
+                const hubChannel = guild.channels.cache.get(hubId)
+                    || await guild.channels.fetch(hubId).catch(() => null);
                 const category = hubChannel?.parent ?? newState.channel?.parent ?? null;
 
                 const displayName = member.displayName || member.user.username;
@@ -107,16 +119,12 @@ module.exports = (bot) => {
 
                 await member.voice.setChannel(newChannel);
 
+                // Envoie le panel dans le tchat du vocal temporaire
                 await sendVoiceOwnerPanel(bot, member, newChannel).catch((e) =>
-                    console.error('Panneau propriétaire vocal (MP):', e)
+                    console.error('[autoVoice] Panneau propriétaire:', e.message)
                 );
             } catch (err) {
-                console.error(
-                    `[autoVoice] Échec création/déplacement vocal pour ${member.user.tag} (${member.id}) :`,
-                    err.message || err
-                );
-                if (err.code) console.error('   code Discord:', err.code);
-
+                console.error(`[autoVoice] Échec création vocal pour ${member.user.tag}:`, err.message || err);
                 if (newChannel) {
                     tempVoices.delete(newChannel.id);
                     saveTempVoiceMap(tempVoices);
