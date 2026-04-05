@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ChannelType, Collection } = require('discord.js');
-const { buildHelpPayload, resolveHelpCategory } = require('../utils/helpPanel');
+const { buildHelpPayload, resolveHelpCategory } = require('../components/helpPanel');
 
 /**
  * Chaque entrée : commande / slash → même handler que le préfixe (via slashAdapter).
