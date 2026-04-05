@@ -1,4 +1,4 @@
-const { buildHelpPayload, resolveHelpCategory } = require('../../utils/helpPanel');
+const { buildHelpPayload, resolveHelpCategory } = require('../../components/helpPanel');
 
 module.exports = async (client, message, args) => {
     await message.delete().catch(() => {});
