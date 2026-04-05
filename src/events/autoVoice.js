@@ -1,7 +1,7 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { getGuildConfig } = require('../utils/guildConfig');
 const { loadTempVoiceMap, saveTempVoiceMap } = require('../utils/tempVoiceStore');
-const { sendVoiceOwnerPanel } = require('../utils/voiceOwnerPanel');
+const { sendVoiceOwnerPanel } = require('../components/voiceOwnerPanel');
 
 const tempVoices = loadTempVoiceMap();
 
