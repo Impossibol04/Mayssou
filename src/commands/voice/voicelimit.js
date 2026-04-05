@@ -1,7 +1,7 @@
 const {
     buildVoicelimitButtonRow,
     applyVoiceUserLimit,
-} = require('../../utils/voiceLimitShared');
+} = require('../../components/voiceLimitShared');
 
 module.exports = async (client, message, args) => {
     const limit = parseInt(args[0], 10);
