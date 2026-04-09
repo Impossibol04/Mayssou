@@ -1,4 +1,5 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { sendModLog } = require('../../utils/modLog');
 
 module.exports = async (client, message, args) => {
     if (!message.member.permissions.has(PermissionFlagsBits.BanMembers))
@@ -13,14 +14,11 @@ module.exports = async (client, message, args) => {
 
     await message.guild.members.unban(targetId);
 
-    const embed = new EmbedBuilder()
-        .setTitle("✅ Membre Débanni")
-        .setColor("Green")
-        .addFields(
-            { name: "👤 Cible", value: `${banEntry.user.username} (\`${banEntry.user.id}\`)`, inline: true },
-            { name: "👮 Modérateur", value: `${message.author.username}`, inline: true }
-        )
-        .setTimestamp();
+    message.react("✅").catch(() => {});
 
-    message.channel.send({ embeds: [embed] });
+    await sendModLog(client, message.guild, {
+        action: 'unban',
+        moderator: message.author,
+        target: banEntry.user,
+    });
 };

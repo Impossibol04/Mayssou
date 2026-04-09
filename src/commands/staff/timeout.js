@@ -1,4 +1,5 @@
 const { PermissionFlagsBits } = require('discord.js');
+const { sendModLog } = require('../../utils/modLog');
 
 module.exports = async (client, message, args) => {
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers))
@@ -18,6 +19,16 @@ module.exports = async (client, message, args) => {
 
     try {
         await member.timeout(duration * 60 * 1000);
+
+        message.react("✅").catch(() => {});
+
+        await sendModLog(client, message.guild, {
+            action: 'timeout',
+            moderator: message.author,
+            target: member.user,
+            extra: [{ name: '⏱️ Durée', value: `${duration} minute(s)` }],
+        });
+
         message.channel.send(`🤐 **${member.user.username}** est en mode lecture seule pour **${duration} min**.`);
     } catch (error) {
         if (error.code === 50013) {

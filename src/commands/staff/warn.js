@@ -1,4 +1,5 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { sendModLog } = require('../../utils/modLog');
 
 module.exports = async (client, message, args) => {
     const isOwner = message.author.id === message.guild.ownerId;
@@ -16,9 +17,7 @@ module.exports = async (client, message, args) => {
     if (!isOwner && target.roles.highest.position >= message.member.roles.highest.position)
         return message.reply("❌ Tu ne peux pas avertir ce membre (hiérarchie supérieure).");
 
-    const reason = message.mentions.users.first()
-        ? args.slice(1).join(" ") || "Aucune raison précisée."
-        : args.slice(1).join(" ") || "Aucune raison précisée.";
+    const reason = args.slice(message.mentions.users.first() ? 1 : 1).join(" ") || "Aucune raison précisée.";
 
     const warnDMEmbed = new EmbedBuilder()
         .setTitle("⚠️ Avertissement reçu")
@@ -31,16 +30,14 @@ module.exports = async (client, message, args) => {
         .setThumbnail(message.guild.iconURL())
         .setTimestamp();
 
-    const warnLogEmbed = new EmbedBuilder()
-        .setTitle("📑 Log : Avertissement")
-        .setColor("#f1c40f")
-        .addFields(
-            { name: "👤 Cible", value: `${target.user.username} (\`${target.id}\`)`, inline: true },
-            { name: "👮 Modérateur", value: `${message.author.username}`, inline: true },
-            { name: "📝 Raison", value: reason }
-        )
-        .setTimestamp();
+    await target.send({ embeds: [warnDMEmbed] }).catch(() => {});
 
-    await target.send({ embeds: [warnDMEmbed] }).catch(() => console.log(`DMs fermés pour ${target.user.username}.`));
-    message.channel.send({ embeds: [warnLogEmbed] });
+    message.react("✅").catch(() => {});
+
+    await sendModLog(client, message.guild, {
+        action: 'warn',
+        moderator: message.author,
+        target: target.user,
+        reason,
+    });
 };

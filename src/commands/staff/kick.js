@@ -1,4 +1,5 @@
-const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { PermissionFlagsBits } = require('discord.js');
+const { sendModLog } = require('../../utils/modLog');
 
 module.exports = async (client, message, args) => {
     if (!message.member.permissions.has(PermissionFlagsBits.KickMembers))
@@ -13,34 +14,17 @@ module.exports = async (client, message, args) => {
     if (member.id === message.author.id) return message.reply("❌ Tu ne peux pas te kick toi-même.");
     if (!member.kickable) return message.reply("❌ Je ne peux pas kick ce membre.");
 
-    const reason = message.mentions.users.first()
-        ? args.slice(1).join(" ") || "Aucune raison précisée."
-        : args.slice(1).join(" ") || "Aucune raison précisée.";
+    const reason = args.slice(message.mentions.users.first() ? 1 : 1).join(" ") || "Aucune raison précisée.";
 
-    // Embed MP
-    const kickDMEmbed = new EmbedBuilder()
-        .setTitle("👢 Tu as été kick")
-        .setDescription(`Tu as été kick du serveur **${message.guild.name}**.`)
-        .setColor("Orange")
-        .addFields(
-            { name: "📋 Raison", value: reason },
-            { name: "🛡️ Modérateur", value: message.author.username }
-        )
-        .setThumbnail(message.guild.iconURL())
-        .setTimestamp();
-
-    // Embed log salon
-    const kickLogEmbed = new EmbedBuilder()
-        .setTitle("👢 Membre Kick")
-        .setColor("Orange")
-        .addFields(
-            { name: "👤 Cible", value: `${member.user.username} (\`${member.id}\`)`, inline: true },
-            { name: "👮 Modérateur", value: `${message.author.username}`, inline: true },
-            { name: "📝 Raison", value: reason }
-        )
-        .setTimestamp();
-
-    await member.send({ embeds: [kickDMEmbed] }).catch(() => console.log(`DMs fermés pour ${member.user.username}.`));
+    await member.send(`👢 Tu as été kick du serveur **${message.guild.name}**.\n📋 Raison : ${reason}`).catch(() => {});
     await member.kick(reason);
-    message.channel.send({ embeds: [kickLogEmbed] });
+
+    message.react("✅").catch(() => {});
+
+    await sendModLog(client, message.guild, {
+        action: 'kick',
+        moderator: message.author,
+        target: member.user,
+        reason,
+    });
 };

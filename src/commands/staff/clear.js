@@ -1,4 +1,5 @@
 const { PermissionFlagsBits } = require('discord.js');
+const { sendModLog } = require('../../utils/modLog');
 
 module.exports = async (client, message, args) => {
     if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages))
@@ -8,7 +9,17 @@ module.exports = async (client, message, args) => {
     if (isNaN(amount) || amount < 1 || amount > 100)
         return message.reply("⚠️ Précise un nombre entre 1 et 100.");
 
-    await message.channel.bulkDelete(amount, true);
-    message.channel.send(`🧹 **${amount}** messages atomisés.`)
-        .then(m => setTimeout(() => m.delete(), 3000));
+    const deleted = await message.channel.bulkDelete(amount, true);
+
+    message.channel.send(`🧹 **${deleted.size}** messages atomisés.`)
+        .then(m => setTimeout(() => m.delete().catch(() => {}), 3000));
+
+    await sendModLog(client, message.guild, {
+        action: 'clear',
+        moderator: message.author,
+        extra: [
+            { name: '📋 Salon', value: `${message.channel}`, inline: true },
+            { name: '🗑️ Messages supprimés', value: `${deleted.size}`, inline: true },
+        ],
+    });
 };
