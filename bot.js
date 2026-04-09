@@ -84,6 +84,27 @@ const loadEvents = () => {
 
 loadEvents();
 
+//Fonction pour restaurer les salons hubs au démarrage
+const restoreHubChannels = (client) => {
+    const dataPath = path.join(__dirname, './data_db/voiceChannels.json');
+    try {
+        const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+        for (const [guildId, { type, id }] of Object.entries(data)) {
+            const guild = client.guilds.cache.get(guildId);
+            if (guild && type === 'hub') {
+                const channel = guild.channels.cache.get(id);
+               if (!channel) {
+                    // Supprime l'entrée si le salon n'existe plus
+                    delete data[guildId];
+                    fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+                }
+            }
+        }
+    } catch (err) {
+        console.log('Aucun salon hub à restaurer.');
+    }
+};
+
 bot.once("ready", () => {
     initSoundCloud();
     setInterval(initSoundCloud, 60 * 60 * 1000);
