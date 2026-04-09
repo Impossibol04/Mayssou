@@ -93,7 +93,7 @@ const restoreHubChannels = (client) => {
             const guild = client.guilds.cache.get(guildId);
             if (guild && type === 'hub') {
                 const channel = guild.channels.cache.get(id);
-               if (!channel) {
+                if (!channel) {
                     // Supprime l'entrée si le salon n'existe plus
                     delete data[guildId];
                     fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
