@@ -1,5 +1,5 @@
 const { PermissionFlagsBits } = require('discord.js');
-const { sendModLog } = require('../../utils/modLog');
+const { sendModLog } = require('../../utils/modlogs');
 
 module.exports = async (client, message, args) => {
     if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages))

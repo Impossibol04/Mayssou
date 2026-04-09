@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ChannelType, Collection } = require('discord.js');
-const { buildHelpPayload, resolveHelpCategory } = require('../components/helpPanel');
+const { buildHelpPayload, resolveHelpCategory } = require('../utils/helpPanel');
 
 /**
  * Chaque entrée : commande / slash → même handler que le préfixe (via slashAdapter).
@@ -129,6 +129,44 @@ module.exports = [
             .addUserOption((o) => o.setName('utilisateur').setDescription('Compte').setRequired(true)),
         commandName: 'unban',
         toArgs: (i) => [i.options.getUser('utilisateur').id],
+    },
+    {
+        data: new SlashCommandBuilder().setName('banlist').setDescription('Bannir plusieurs membres en une seule commande (max 25)')
+            .addUserOption((o) => o.setName('cible1').setDescription('1er membre').setRequired(true))
+            .addUserOption((o) => o.setName('cible2').setDescription('2ème membre').setRequired(false))
+            .addUserOption((o) => o.setName('cible3').setDescription('3ème membre').setRequired(false))
+            .addUserOption((o) => o.setName('cible4').setDescription('4ème membre').setRequired(false))
+            .addUserOption((o) => o.setName('cible5').setDescription('5ème membre').setRequired(false))
+            .addStringOption((o) => o.setName('raison').setDescription('Raison du ban').setRequired(false)),
+        customExecute: async (bot, interaction) => {
+            // Récupère toutes les cibles non nulles
+            const cibleKeys = ['cible1','cible2','cible3','cible4','cible5'];
+            const users = cibleKeys
+                .map(k => interaction.options.getUser(k))
+                .filter(Boolean);
+
+            const reason = interaction.options.getString('raison') || 'Mass Ban';
+
+            if (users.length === 0)
+                return interaction.reply({ content: '❌ Aucun utilisateur valide.', ephemeral: true });
+
+            // Construit des args synthétiques compatibles avec le handler préfixe :
+            // [ID1, ID2, ..., ...raison]
+            const fakeArgs = [...users.map(u => u.id), ...reason.split(' ')];
+
+            // Imite message.mentions.users pour que le handler puisse parser les IDs
+            const { Collection } = require('discord.js');
+            const mentionUsers = new Collection(users.map(u => [u.id, u]));
+
+            const { createSlashMessageAdapter } = require('../utils/slashAdapter');
+            const adapter = createSlashMessageAdapter(interaction, {
+                syntheticContent: '',
+                mentionUsers,
+            });
+
+            const cmd = bot.commands.get('banlist');
+            if (cmd) await cmd(bot, adapter, fakeArgs);
+        },
     },
     {
         data: new SlashCommandBuilder().setName('timeout').setDescription('Exclure temporairement (timeout)')

@@ -1,5 +1,5 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
-const { sendModLog } = require('../../utils/modLog');
+const { sendModLog } = require('../../utils/modlogs');
 
 module.exports = async (client, message, args) => {
     const isOwner = message.author.id === message.guild.ownerId;
