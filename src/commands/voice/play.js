@@ -44,6 +44,7 @@ module.exports = async (client, message, args) => {
             title: r.name || "Titre inconnu",
             artist: r.user?.name || "Inconnu",
             duration: formatDuration(r.durationInSec),
+            durationInSec: r.durationInSec || 0,
             thumbnail: r.thumbnail || null,
             requestedBy: message.author.username,
             isKaraoke,
@@ -81,12 +82,21 @@ module.exports = async (client, message, args) => {
         const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
         connection.subscribe(player);
 
-        musicData.set(message.guild.id, { player, connection, queue: [], currentTrack: track, loop: false, stopped: false });
+        musicData.set(message.guild.id, {
+            player,
+            connection,
+            queue: [],
+            currentTrack: track,
+            loop: false,
+            stopped: false,
+            volume: 100,
+            suppressIdleAdvance: false,
+        });
         data = musicData.get(message.guild.id);
 
         const stream = await playdl.stream(track.url, { quality: 2 });
         const resource = createAudioResource(stream.stream, { inputType: stream.type, inlineVolume: true });
-        resource.volume.setVolume(1);
+        resource.volume.setVolume(Math.min(2, Math.max(0, (data.volume ?? 100) / 100)));
         player.play(resource);
 
         const embed = new EmbedBuilder()
@@ -127,6 +137,7 @@ module.exports = async (client, message, args) => {
 
         player.on(AudioPlayerStatus.Idle, () => {
             const currentData = musicData.get(message.guild.id);
+            if (currentData?.suppressIdleAdvance) return;
             if (currentData?.stopped) { currentData.stopped = false; return; }
             playNext(message.guild.id, message.channel);
         });

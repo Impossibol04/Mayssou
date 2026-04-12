@@ -468,4 +468,166 @@ module.exports = [
         commandName: '67',
         toArgs: () => [],
     },
+    {
+        data: new SlashCommandBuilder().setName('unmute').setDescription('Retirer le timeout Discord')
+            .addUserOption((o) => o.setName('membre').setDescription('Membre').setRequired(true)),
+        commandName: 'unmute',
+        toArgs: (i) => [i.options.getUser('membre').id],
+    },
+    {
+        data: new SlashCommandBuilder().setName('cleanwarn').setDescription('Effacer les warns enregistrés')
+            .addUserOption((o) => o.setName('membre').setDescription('Membre').setRequired(false))
+            .addBooleanOption((o) => o.setName('tout').setDescription('Tout le serveur (owner / gérer serveur)').setRequired(false)),
+        customExecute: async (bot, interaction) => {
+            const all = interaction.options.getBoolean('tout');
+            const u = interaction.options.getUser('membre');
+            const { Collection } = require('discord.js');
+            const { createSlashMessageAdapter } = require('../utils/slashAdapter');
+            if (all) {
+                const adapter = createSlashMessageAdapter(interaction, {});
+                const cmd = bot.commands.get('cleanwarn');
+                if (cmd) await cmd(bot, adapter, ['all']);
+                return;
+            }
+            if (!u) {
+                return interaction.reply({ ephemeral: true, content: '❌ Choisis un membre ou active **tout**.' });
+            }
+            const mem = await interaction.guild.members.fetch(u.id).catch(() => null);
+            const adapter = createSlashMessageAdapter(interaction, {
+                mentionUsers: new Collection([[u.id, u]]),
+                mentionMembers: mem ? new Collection([[mem.id, mem]]) : new Collection(),
+            });
+            const cmd = bot.commands.get('cleanwarn');
+            if (cmd) await cmd(bot, adapter, [u.id]);
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('antiraid').setDescription('Antiraid (admin)')
+            .addStringOption((o) =>
+                o.setName('action').setDescription('Sous-commande').setRequired(false).addChoices(
+                    { name: 'status', value: 'status' },
+                    { name: 'on', value: 'on' },
+                    { name: 'off', value: 'off' }
+                )),
+        commandName: 'antiraid',
+        toArgs: (i) => {
+            const a = i.options.getString('action');
+            return a ? [a] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('inviteinfo').setDescription('Infos sur une invitation')
+            .addStringOption((o) => o.setName('code').setDescription('Code ou lien discord.gg').setRequired(true)),
+        commandName: 'inviteinfo',
+        toArgs: (i) => [i.options.getString('code')],
+    },
+    {
+        data: new SlashCommandBuilder().setName('translate').setDescription('Traduire du texte')
+            .addStringOption((o) => o.setName('texte').setDescription('Texte').setRequired(true).setMaxLength(2000))
+            .addStringOption((o) =>
+                o.setName('vers').setDescription('Langue cible').setRequired(false).addChoices(
+                    { name: 'Anglais', value: 'en' },
+                    { name: 'Français', value: 'fr' },
+                    { name: 'Espagnol', value: 'es' },
+                    { name: 'Allemand', value: 'de' }
+                )),
+        commandName: 'translate',
+        toArgs: (i) => {
+            const t = i.options.getString('vers');
+            const text = i.options.getString('texte');
+            return t ? [t, text] : [text];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('weather').setDescription('Météo par ville')
+            .addStringOption((o) => o.setName('ville').setDescription('Ex. Paris').setRequired(true)),
+        commandName: 'weather',
+        toArgs: (i) => [i.options.getString('ville')],
+    },
+    {
+        data: new SlashCommandBuilder().setName('nowplaying').setDescription('Piste en cours'),
+        commandName: 'nowplaying',
+        toArgs: () => [],
+    },
+    {
+        data: new SlashCommandBuilder().setName('volume').setDescription('Volume musique (0–200)')
+            .addIntegerOption((o) => o.setName('niveau').setDescription('Vide = afficher').setRequired(false).setMinValue(0).setMaxValue(200)),
+        commandName: 'volume',
+        toArgs: (i) => {
+            const n = i.options.getInteger('niveau');
+            return n == null ? [] : [String(n)];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('shuffle').setDescription('Mélanger la file musique'),
+        commandName: 'shuffle',
+        toArgs: () => [],
+    },
+    {
+        data: new SlashCommandBuilder().setName('remove').setDescription('Retirer un morceau de la file')
+            .addIntegerOption((o) => o.setName('position').setDescription('Index 1 = prochain').setRequired(true).setMinValue(1).setMaxValue(100)),
+        commandName: 'remove',
+        toArgs: (i) => [String(i.options.getInteger('position'))],
+    },
+    {
+        data: new SlashCommandBuilder().setName('seek').setDescription('Avance la lecture (secondes)')
+            .addIntegerOption((o) => o.setName('secondes').setDescription('Position en secondes').setRequired(true).setMinValue(0).setMaxValue(36000)),
+        commandName: 'seek',
+        toArgs: (i) => [String(i.options.getInteger('secondes'))],
+    },
+    {
+        data: new SlashCommandBuilder().setName('lyrics').setDescription('Paroles (Genius)')
+            .addStringOption((o) => o.setName('titre').setDescription('Titre - Artiste (optionnel)').setRequired(false).setMaxLength(200)),
+        commandName: 'lyrics',
+        toArgs: (i) => {
+            const t = i.options.getString('titre');
+            return t ? [t] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('setprefix').setDescription('Préfixe du serveur (admin)')
+            .addStringOption((o) => o.setName('prefix').setDescription('Nouveau préfixe ou reset').setRequired(false).setMaxLength(8)),
+        commandName: 'setprefix',
+        toArgs: (i) => {
+            const p = i.options.getString('prefix');
+            return p ? [p] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('setbirthday').setDescription('Enregistrer ton anniversaire (jour/mois)')
+            .addStringOption((o) => o.setName('date').setDescription('JJ/MM').setRequired(false)),
+        commandName: 'setbirthday',
+        toArgs: (i) => {
+            const d = i.options.getString('date');
+            return d ? [d] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('language').setDescription('Langue du serveur (fr/en)')
+            .addStringOption((o) =>
+                o.setName('code').setDescription('Code').setRequired(false).addChoices(
+                    { name: 'Français', value: 'fr' },
+                    { name: 'English', value: 'en' }
+                )),
+        commandName: 'language',
+        toArgs: (i) => {
+            const c = i.options.getString('code');
+            return c ? [c] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('ask').setDescription('Question à l’IA (OpenAI)')
+            .addStringOption((o) => o.setName('question').setDescription('Ta question').setRequired(true).setMaxLength(1500)),
+        commandName: 'ask',
+        toArgs: (i) => [i.options.getString('question')],
+    },
+    {
+        data: new SlashCommandBuilder().setName('summarize').setDescription('Résumer du texte (OpenAI)')
+            .addStringOption((o) => o.setName('texte').setDescription('Texte à résumer').setRequired(false).setMaxLength(4000)),
+        commandName: 'summarize',
+        toArgs: (i) => {
+            const t = i.options.getString('texte');
+            return t ? t.split(/\s+/) : [];
+        },
+    },
 ];

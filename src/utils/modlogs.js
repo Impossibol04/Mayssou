@@ -15,6 +15,7 @@ const ACTION_STYLES = {
     lock:     { emoji: '🔒', color: 0x95a5a6, label: 'Lock'     },
     unlock:   { emoji: '🔓', color: 0x95a5a6, label: 'Unlock'   },
     banlist:  { emoji: '🔨', color: 0xe74c3c, label: 'Mass Ban' },
+    antiraid: { emoji: '🛡️', color: 0xe74c3c, label: 'Antiraid' },
 };
 
 /**

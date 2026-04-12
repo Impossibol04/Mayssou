@@ -17,6 +17,19 @@ const config = {
 const path = require('path');
 const { addMessage } = require('./src/utils/statsDB');
 const { checkCooldown } = require('./src/utils/cooldown');
+const { getGuildConfig } = require('./src/utils/guildConfig');
+
+function defaultPrefix() {
+    return (process.env.prefix || '+').trim() || '+';
+}
+
+function resolvePrefix(guild) {
+    const def = defaultPrefix();
+    if (!guild) return def;
+    const p = getGuildConfig(guild.id).prefix;
+    if (typeof p === 'string' && p.length >= 1 && p.length <= 8 && !/\s/.test(p)) return p;
+    return def;
+}
 
 const bot = new Client({
     intents: [
@@ -122,7 +135,7 @@ bot.once("ready", () => {
   👤 Développé par : Helios_004
   `);
     bot.user.setPresence({
-        activities: [{ name: `Mange du Popcorn | /help • ${config.prefix}help`, type: ActivityType.Watching }],
+        activities: [{ name: `Mange du Popcorn | /help • ${defaultPrefix()}help`, type: ActivityType.Watching }],
         status: 'online',
     });
 });
@@ -138,9 +151,10 @@ bot.on("messageCreate", async (message) => {
         addMessage(message.guild.id, message.author.id, message.channel.id);
     }
     
-    if (message.author.bot || !message.content.startsWith(config.prefix)) return;
-    
-    const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
+    const prefix = resolvePrefix(message.guild);
+    if (message.author.bot || !message.content.startsWith(prefix)) return;
+
+    const args = message.content.slice(prefix.length).trim().split(/ +/g);
     const commandName = args.shift().toLowerCase();
     const command = bot.commands.get(commandName);
     
@@ -156,7 +170,7 @@ bot.on("messageCreate", async (message) => {
         const remaining = checkCooldown(realCommandName, message.author.id, cooldownAmount);
         
         if (remaining) {
-            return message.reply(`⏳ Attends encore **${remaining}s** avant de refaire \`${config.prefix}${realCommandName}\`.`);
+            return message.reply(`⏳ Attends encore **${remaining}s** avant de refaire \`${prefix}${realCommandName}\`.`);
         }
         // --------------------------------------------
         

@@ -29,6 +29,7 @@ function getOrCreateConnection(voiceChannel, guildId) {
 async function playNext(guildId, channel) {
     const data = musicData.get(guildId);
     if (!data) return;
+    if (data.suppressIdleAdvance) return;
     if (data.stopped) return;
     if (data.loop && data.currentTrack) data.queue.unshift(data.currentTrack);
 
@@ -49,7 +50,8 @@ async function playNext(guildId, channel) {
     try {
         const stream = await playdl.stream(track.url, { quality: 2 });
         const resource = createAudioResource(stream.stream, { inputType: stream.type, inlineVolume: true });
-        resource.volume.setVolume(1);
+        const vol = Math.min(2, Math.max(0, (data.volume ?? 100) / 100));
+        resource.volume.setVolume(vol);
         data.player.play(resource);
 
         const { EmbedBuilder } = require('discord.js');

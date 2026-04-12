@@ -92,6 +92,9 @@ function buildCategoryEmbed(key) {
             body: [
                 `${pre('clear')} / \`/clear\` — nombre (1–100)`,
                 `${pre('warn')} / \`/warn\` — membre, raison`,
+                `${pre('cleanwarn')} — efface les warns enregistrés (\`all\` = tout le serveur)`,
+                `${pre('unmute')} — retire le **timeout** Discord`,
+                `${pre('antiraid')} — détection pic d’arrivées (admin)`,
                 `${pre('kick')} / \`/kick\``,
                 `${pre('ban')} / \`/ban\``,
                 `${pre('unban')} / \`/unban\``,
@@ -107,6 +110,8 @@ function buildCategoryEmbed(key) {
         config: {
             title: '⚙️ Configuration',
             body: [
+                `${pre('setprefix')} — préfixe du serveur (admin)`,
+                `${pre('language')} — \`fr\` / \`en\` (défaut **translate**, etc.)`,
                 `${pre('setconfess')} / \`/setconfess\` — salon`,
                 `${pre('setwelcome join|leave')} / \`/setwelcome\` — sous-commandes`,
                 `${pre('setjoinvoice')} / \`/setjoinvoice\` — catégorie optionnelle`,
@@ -125,12 +130,22 @@ function buildCategoryEmbed(key) {
                 `${pre('serverinfo')} / \`/serverinfo\``,
                 `${pre('stats')} / \`/stats\``,
                 `${pre('leaderboard')} — aussi \`${p}lb\`, \`${p}top\` / \`/leaderboard\``,
+                `${pre('inviteinfo')} — détail d’une invitation`,
+                `${pre('translate')} — texte (option \`en\`, \`fr\`, …)`,
+                `${pre('weather')} <ville>`,
+                `${pre('setbirthday')} JJ/MM`,
+                `${pre('ask')}, ${pre('summarize')} — **OPENAI_API_KEY** requise`,
             ].join('\n'),
         },
         music: {
             title: '🎵 Musique',
             body: [
                 `${pre('play')} / \`/play\` — option karaoké`,
+                `${pre('nowplaying')} (${p}np)`,
+                `${pre('volume')} <0-200>`,
+                `${pre('shuffle')}, ${pre('remove')} <#file>`,
+                `${pre('seek')} <s|mm:ss>`,
+                `${pre('lyrics')} — titre / piste en cours`,
                 `${pre('skip')} / \`/skip\``,
                 `${pre('stop')} / \`/stop\``,
                 `${pre('pause')}, reprise / \`/pause\``,

@@ -1,5 +1,6 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const { sendModLog } = require('../../utils/modlogs');
+const { addWarn } = require('../../utils/warnStore');
 
 module.exports = async (client, message, args) => {
     const isOwner = message.author.id === message.guild.ownerId;
@@ -31,6 +32,12 @@ module.exports = async (client, message, args) => {
         .setTimestamp();
 
     await target.send({ embeds: [warnDMEmbed] }).catch(() => {});
+
+    addWarn(message.guild.id, target.id, {
+        reason,
+        moderatorId: message.author.id,
+        at: new Date().toISOString(),
+    });
 
     message.react("✅").catch(() => {});
 
