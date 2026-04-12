@@ -117,29 +117,35 @@ function buildHomeEmbed(botIconURL) {
         .setTitle('✦ Centre d’aide Mayssou')
         .setURL(GITHUB_REPO)
         .setDescription(
-            'Bot **modération**, **musique** (SoundCloud), **vocaux temporaires**, **fun** et **outils**.\n\n' +
-                '*Slash (`/`) ou **préfixe** — chaque catégorie s’ouvre sur une **page courte** ; **◀ ▶** pour feuilleter.*'
+            'Bot Discord **modération**, **musique** (SoundCloud), **vocaux temporaires**, **fun** et **outils**.\n\n' +
+                '*Tout est utilisable en **slash** (`/`) ou avec le **préfixe** affiché ci-contre.*'
         )
         .addFields(
             {
-                name: '⌨️ Préfixe',
-                value: `**Actif :** \`${p}\` · \`${p}setprefix\` / \`reset\` *(admin)*`,
+                name: '⌨️ Préfixe sur ce serveur',
+                value:
+                    `**Actif :** \`${p}\`\n` +
+                    `Les admins peuvent le changer avec \`${p}setprefix\` (1–8 caractères) ou \`${p}setprefix reset\`.\n` +
+                    'Les **commandes slash** ne dépendent pas du préfixe.',
                 inline: false,
             },
             {
                 name: '🔗 Liens',
-                value: `[**${GITHUB_USER}**](${GITHUB_PROFILE}) · [**Mayssou**](${GITHUB_REPO})`,
+                value:
+                    `[Profil GitHub — **${GITHUB_USER}**](${GITHUB_PROFILE})\n` +
+                    `[Dépôt **Mayssou**](${GITHUB_REPO})`,
                 inline: false,
             },
             {
                 name: '🧭 Navigation',
                 value:
-                    `Menu **ci-dessous** pour la catégorie · **◀ ▶** quand il y a plusieurs pages\n` +
-                    `\`${p}help moderation\` pour ouvrir direct une rubrique`,
+                    `• \`${p}help\` ou \`/help\` — ce panneau\n` +
+                    `• \`${p}help moderation\` — ouvre une catégorie sans menu\n` +
+                    '• Utilise le **menu déroulant** pour feuilleter toutes les commandes *avec détails*.',
                 inline: false,
             }
         )
-        .setFooter({ text: `Mayssou · ${p} ou /` })
+        .setFooter({ text: `Mayssou · Slash + préfixe ${p} · ${GITHUB_USER}` })
         .setTimestamp();
 
     if (botIconURL) embed.setThumbnail(botIconURL);
