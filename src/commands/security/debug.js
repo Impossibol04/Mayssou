@@ -3,7 +3,7 @@ const { isBotOwner } = require('../../utils/commandGuards');
 const { ownerCommandDeniedLines } = require('../../utils/ownerMessages');
 
 module.exports = async (client, message, args) => {
-    if (!isBotOwner(message.author.id)) return message.reply(ownerCommandDeniedLines());
+    if (!isBotOwner(message.author.id)) return message.reply(ownerCommandDeniedLines(message.author.id));
 
     const mem = process.memoryUsage();
     const embed = new EmbedBuilder()
@@ -12,7 +12,11 @@ module.exports = async (client, message, args) => {
         .addFields(
             { name: 'Serveurs', value: `${client.guilds.cache.size}`, inline: true },
             { name: 'Utilisateurs (cache)', value: `${client.users.cache.size}`, inline: true },
-            { name: 'Ping WS', value: `${client.ws.ping} ms`, inline: true },
+            {
+                name: 'Ping WS',
+                value: client.ws.ping < 0 ? '— (WS pas prêt)' : `${client.ws.ping} ms`,
+                inline: true,
+            },
             {
                 name: 'Mémoire RSS',
                 value: `${(mem.rss / 1024 / 1024).toFixed(1)} Mo`,

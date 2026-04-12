@@ -3,7 +3,7 @@ const { isBotOwner } = require('../../utils/commandGuards');
 const { listIds, addId, removeId } = require('../../utils/guildBlacklist');
 
 module.exports = async (client, message, args) => {
-    if (!isBotOwner(message.author.id)) return message.reply(ownerCommandDeniedLines());
+    if (!isBotOwner(message.author.id)) return message.reply(ownerCommandDeniedLines(message.author.id));
 
     const sub = (args[0] || '').toLowerCase();
     if (!sub || sub === 'list') {
