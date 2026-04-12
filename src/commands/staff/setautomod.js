@@ -22,12 +22,12 @@ module.exports = async (client, message, args) => {
             [
                 '🤖 **Auto-modération**',
                 `État : **${s.enabled ? 'activée' : 'désactivée'}**`,
-                `Insultes (liste courte FR) : ${s.insults ? 'oui' : 'non'}`,
-                `Anti-spam : ${s.spam ? 'oui' : 'non'} (${s.spamMax} msgs / ${s.spamWindowMs / 1000}s)`,
-                `Anti-caps : ${s.caps ? 'oui' : 'non'} (min ${s.capsMinLen} car., ratio ≥ ${s.capsRatio})`,
+                `Insultes (mots FR, mot entier) : ${s.insults ? 'oui' : 'non'}`,
+                `Anti-spam : ${s.spam ? 'oui' : 'non'} — débit **${s.spamMax}** msg / **${s.spamWindowMs / 1000}s**, doublons **${s.spamDupCount}×** le même texte / **${s.spamDupWindowMs / 1000}s**, répétitions **${s.spamRepeatChar}** car. identiques`,
+                `Anti-caps : ${s.caps ? 'oui' : 'non'} (≥ **${s.capsMinLen}** car. message, ≥ **${s.capsMinLetters}** lettres, ratio maj. ≥ **${s.capsRatio}**)`,
                 `Bloquer invites Discord : ${s.blockInvites ? 'oui' : 'non'}`,
                 '',
-                `Configure avec \`${p}setautomod on|off\`, \`insults on|off\`, \`spam on|off\`, \`caps on|off\`, \`invites on|off\``,
+                `Configure avec \`${p}setautomod on|off\`, \`insults on|off\`, \`spam on|off\`, \`caps on|off\`, \`invites on|off\` — *Gérer serveur.*`,
             ].join('\n')
         );
     }

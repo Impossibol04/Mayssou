@@ -1,61 +1,122 @@
 const { PermissionFlagsBits } = require('discord.js');
 const { getGuildConfig } = require('./guildConfig');
 
-/** @type {Map<string, number[]>} key guildId:userId -> timestamps */
+/** @type {Map<string, number[]>} key guildId:userId -> timestamps (débit messages) */
 const recentMsgs = new Map();
 
-const DEFAULT_BAD = new Set([
+/** @type {Map<string, { t: number; norm: string }[]>} doublons de texte récents */
+const recentTexts = new Map();
+
+/**
+ * Insultes / grossièretés fortes (correspondance **mot entier** uniquement, sans sous-chaîne type « dominique »).
+ */
+const BAD_TOKENS = new Set([
+    'connard',
+    'connasse',
+    'connards',
+    'connasses',
     'fdp',
     'pd',
     'encule',
+    'enculer',
+    'enculé',
     'ntm',
-    'tg',
-    'salope',
-    'pute',
-    'connard',
-    'connasse',
     'nique',
+    'niquer',
+    'niqué',
+    'salope',
+    'salopes',
+    'pute',
+    'putes',
+    'tg',
     'hitler',
+    'nazi',
+    'negre',
+    'negres',
+    'négre',
+    'nègre',
+    'bouffon',
+    'bouffonne',
+    'tarlouze',
+    'pédale',
+    'pedale',
+    'pédé',
+    'pede',
+    'tapette',
+    'putain',
+    'putains',
+    'batard',
+    'bâtard',
+    'batards',
+    'salaud',
+    'salauds',
+    'trouducul',
+    'trouduc',
 ]);
+
+/** Sous-chaînes uniquement sur forme compacte (sans espaces), 3 caractères max pour limiter les faux positifs */
+const BAD_COMPACT = new Set(['fdp', 'ntm', 'tg']);
 
 function getSettings(guildId) {
     const cfg = getGuildConfig(guildId);
     const a = cfg.autoMod && typeof cfg.autoMod === 'object' ? cfg.autoMod : {};
     return {
         enabled: Boolean(a.enabled),
-        insults: a.insults === true,
+        /** Par défaut : activé (sauf si `insults: false` explicitement) */
+        insults: a.insults !== false,
         spam: a.spam !== false,
         caps: a.caps !== false,
         capsMinLen: typeof a.capsMinLen === 'number' ? a.capsMinLen : 18,
         capsRatio: typeof a.capsRatio === 'number' ? a.capsRatio : 0.72,
+        capsMinLetters: typeof a.capsMinLetters === 'number' ? a.capsMinLetters : 8,
         spamWindowMs: typeof a.spamWindowMs === 'number' ? a.spamWindowMs : 8000,
         spamMax: typeof a.spamMax === 'number' ? a.spamMax : 6,
+        spamDupWindowMs: typeof a.spamDupWindowMs === 'number' ? a.spamDupWindowMs : 12000,
+        spamDupCount: typeof a.spamDupCount === 'number' ? a.spamDupCount : 3,
+        spamRepeatChar: typeof a.spamRepeatChar === 'number' ? a.spamRepeatChar : 15,
         blockInvites: Boolean(a.blockInvites),
     };
 }
 
-function normalizeWord(w) {
-    return w
+function tokenizeWords(content) {
+    return String(content || '')
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9@]/gi, '');
+        .split(/[^a-z0-9]+/)
+        .map((w) => w.replace(/[^a-z0-9]/gi, ''))
+        .filter(Boolean);
 }
 
 function hasInsult(content) {
-    const words = content.split(/\s+/).map(normalizeWord).filter(Boolean);
-    for (const w of words) {
-        if (DEFAULT_BAD.has(w)) return true;
-        for (const bad of DEFAULT_BAD) {
-            if (w.includes(bad) && bad.length >= 3) return true;
-        }
+    const raw = String(content || '');
+    if (!raw.trim()) return false;
+
+    const tokens = tokenizeWords(raw);
+    for (const w of tokens) {
+        const t = w
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/gi, '');
+        if (BAD_TOKENS.has(t)) return true;
     }
+
+    const compact = raw
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+    for (const bad of BAD_COMPACT) {
+        if (compact.includes(bad)) return true;
+    }
+
     return false;
 }
 
-function capsRatio(content) {
-    const letters = content.replace(/[^a-zA-ZàâäéèêëïîôùûçÀÂÄÉÈÊËÏÎÔÙÛÇ]/g, '');
-    if (letters.length < 8) return 0;
+function capsRatio(content, minLetters) {
+    const letters = String(content).replace(/[^a-zA-ZàâäéèêëïîôùûçÀÂÄÉÈÊËÏÎÔÙÛÇ]/g, '');
+    if (letters.length < minLetters) return 0;
     const up = letters.replace(/[^A-ZÀÂÄÉÈÊËÏÎÔÙÛÇ]/g, '').length;
     return up / letters.length;
 }
@@ -64,7 +125,7 @@ function isDiscordInvite(content) {
     return /discord\.gg\/[\w-]+/i.test(content) || /discord(?:app)?\.com\/invite\//i.test(content);
 }
 
-function spamHit(guildId, userId, windowMs, max) {
+function spamRateHit(guildId, userId, windowMs, max) {
     const key = `${guildId}:${userId}`;
     const now = Date.now();
     let arr = recentMsgs.get(key) || [];
@@ -74,64 +135,100 @@ function spamHit(guildId, userId, windowMs, max) {
     return arr.length >= max;
 }
 
+function spamDuplicateHit(guildId, userId, content, windowMs, needCount) {
+    const norm = String(content || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+    if (norm.length < 8) return false;
+
+    const key = `${guildId}:${userId}`;
+    const now = Date.now();
+    let arr = recentTexts.get(key) || [];
+    arr = arr.filter((e) => now - e.t <= windowMs);
+    arr.push({ t: now, norm });
+    recentTexts.set(key, arr);
+    const same = arr.filter((e) => e.norm === norm).length;
+    return same >= needCount;
+}
+
+function hasRepeatCharSpam(content, minRepeat) {
+    return new RegExp(`(.)\\1{${minRepeat - 1},}`, 'u').test(String(content || ''));
+}
+
+function canBypass(member) {
+    if (!member) return false;
+    return (
+        member.permissions.has(PermissionFlagsBits.ManageMessages) ||
+        member.permissions.has(PermissionFlagsBits.Administrator) ||
+        member.permissions.has(PermissionFlagsBits.ModerateMembers)
+    );
+}
+
+async function notifyChannel(message, text) {
+    await message.channel
+        .send({
+            content: text,
+            allowedMentions: { users: [message.author.id] },
+        })
+        .then((m) => setTimeout(() => m.delete().catch(() => {}), 5500))
+        .catch(() => {});
+}
+
 /**
  * @returns {Promise<string | null>} raison courte si action, sinon null
  */
 async function runAutoModeration(message) {
     if (!message.guild || message.author.bot) return null;
-    if (message.member?.permissions.has(PermissionFlagsBits.ManageMessages)) return null;
+    if (canBypass(message.member)) return null;
 
     const s = getSettings(message.guild.id);
     if (!s.enabled) return null;
 
     const content = message.content || '';
+    const author = message.author;
 
     if (s.blockInvites && isDiscordInvite(content)) {
         await message.delete().catch(() => {});
-        await message.channel
-            .send({
-                content: `🚫 ${message.author}, les invitations Discord sont interdites ici.`,
-                allowedMentions: { users: [message.author.id] },
-            })
-            .then((m) => setTimeout(() => m.delete().catch(() => {}), 6000))
-            .catch(() => {});
+        await notifyChannel(message, `🚫 ${author}, les invitations Discord sont interdites ici.`);
         return 'invite';
     }
 
     if (s.insults && content.length > 0 && hasInsult(content)) {
         await message.delete().catch(() => {});
-        await message.channel
-            .send({
-                content: `⚠️ ${message.author}, ce langage n’est pas accepté ici.`,
-                allowedMentions: { users: [message.author.id] },
-            })
-            .then((m) => setTimeout(() => m.delete().catch(() => {}), 5000))
-            .catch(() => {});
+        await notifyChannel(message, `⚠️ ${author}, ce langage n’est pas accepté ici.`);
         return 'insulte';
     }
 
-    if (s.caps && content.length >= s.capsMinLen && capsRatio(content) >= s.capsRatio) {
+    if (
+        s.caps &&
+        content.length >= s.capsMinLen &&
+        capsRatio(content, s.capsMinLetters) >= s.capsRatio
+    ) {
         await message.delete().catch(() => {});
-        await message.channel
-            .send({
-                content: `🔇 ${message.author}, trop de majuscules — reformule calmement.`,
-                allowedMentions: { users: [message.author.id] },
-            })
-            .then((m) => setTimeout(() => m.delete().catch(() => {}), 5000))
-            .catch(() => {});
+        await notifyChannel(message, `🔇 ${author}, trop de majuscules — reformule calmement.`);
         return 'caps';
     }
 
-    if (s.spam && spamHit(message.guild.id, message.author.id, s.spamWindowMs, s.spamMax)) {
+    if (s.spam && content.length > 0 && hasRepeatCharSpam(content, s.spamRepeatChar)) {
         await message.delete().catch(() => {});
-        await message.channel
-            .send({
-                content: `⏳ ${message.author}, tu envoies trop de messages. Ralentis un peu.`,
-                allowedMentions: { users: [message.author.id] },
-            })
-            .then((m) => setTimeout(() => m.delete().catch(() => {}), 5000))
-            .catch(() => {});
-        return 'spam';
+        await notifyChannel(message, `📛 ${author}, répétitions excessives (spam).`);
+        return 'spam_repeat';
+    }
+
+    if (
+        s.spam &&
+        spamDuplicateHit(message.guild.id, author.id, content, s.spamDupWindowMs, s.spamDupCount)
+    ) {
+        await message.delete().catch(() => {});
+        await notifyChannel(message, `🔁 ${author}, ne répète pas le même message.`);
+        return 'spam_duplicate';
+    }
+
+    if (s.spam && spamRateHit(message.guild.id, author.id, s.spamWindowMs, s.spamMax)) {
+        await message.delete().catch(() => {});
+        await notifyChannel(message, `⏳ ${author}, tu envoies trop de messages. Ralentis un peu.`);
+        return 'spam_rate';
     }
 
     return null;

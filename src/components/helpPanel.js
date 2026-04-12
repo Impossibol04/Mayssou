@@ -250,7 +250,7 @@ function getCategoryPageDefs(p) {
                 lines: [
                     L(p, 'setconfess', 'setconfess', '**#saisie #public** ou **input** / **output** / **show**.'),
                     L(p, 'setwelcome', 'setwelcome', '**join** / **leave** · **joinmessage** / **leavemessage** (`{mention}`…).'),
-                    L(p, 'setautomod', 'setautomod', 'Insultes / spam / caps / invites · **on** pour activer. *Gérer serveur.*'),
+                    L(p, 'setautomod', 'setautomod', 'Auto-mod : insultes (mots), spam (débit + doublons + répétitions), caps, invites · `status`. *Gérer serveur.*'),
                     L(p, 'setxprole', 'setxprole', 'Rôles donnés aux **paliers XP** (`add` / `list`).'),
                     L(p, 'setmodlogs', 'setmodlogs', 'Salon **logs** modération.'),
                     L(p, 'setjoinvoice', 'setjoinvoice', 'Hub **Créer un vocal**.'),
