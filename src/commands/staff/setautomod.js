@@ -26,8 +26,9 @@ module.exports = async (client, message, args) => {
                 `Anti-spam : ${s.spam ? 'oui' : 'non'} — débit **${s.spamMax}** msg / **${s.spamWindowMs / 1000}s**, doublons **${s.spamDupCount}×** le même texte / **${s.spamDupWindowMs / 1000}s**, répétitions **${s.spamRepeatChar}** car. identiques`,
                 `Anti-caps : ${s.caps ? 'oui' : 'non'} (≥ **${s.capsMinLen}** car. message, ≥ **${s.capsMinLetters}** lettres, ratio maj. ≥ **${s.capsRatio}**)`,
                 `Bloquer invites Discord : ${s.blockInvites ? 'oui' : 'non'}`,
+                `Bloquer liens (http(s), www, aperçus) + GIF en fichier : ${s.blockLinks ? `oui${s.blockGifFiles ? ' (GIF fichiers inclus)' : ' (GIF fichiers autorisés)'}` : 'non'}`,
                 '',
-                `Configure avec \`${p}setautomod on|off\`, \`insults on|off\`, \`spam on|off\`, \`caps on|off\`, \`invites on|off\` — *Gérer serveur.*`,
+                `Configure avec \`${p}setautomod on|off\`, \`insults\`, \`spam\`, \`caps\`, \`invites\`, \`links\`, \`giffiles\` (+ on/off) — *Gérer serveur.*`,
             ].join('\n')
         );
     }
@@ -65,8 +66,21 @@ module.exports = async (client, message, args) => {
         mergeAutoMod(message.guild.id, { blockInvites: val });
         return message.reply(`✅ Blocage des liens d’invitation Discord : **${val ? 'activé' : 'désactivé'}**.`);
     }
+    if (sub === 'links' || sub === 'liens' || sub === 'url' || sub === 'urls') {
+        mergeAutoMod(message.guild.id, { blockLinks: val });
+        return message.reply(
+            `✅ Blocage des **liens** (http(s), www, aperçus embed) : **${val ? 'activé' : 'désactivé'}**.` +
+                (val ? ` Utilise aussi \`${p}setautomod giffiles off\` pour autoriser les GIF en pièce jointe.` : '')
+        );
+    }
+    if (sub === 'giffiles' || sub === 'giffichiers' || sub === 'gif') {
+        mergeAutoMod(message.guild.id, { blockGifFiles: val });
+        return message.reply(
+            `✅ Blocage des **fichiers GIF** (pièces jointes) avec l’anti-liens : **${val ? 'activé' : 'désactivé'}**.`
+        );
+    }
 
     return message.reply(
-        `⚠️ Sous-commandes : \`on\` · \`off\` · \`status\` · \`insults\` · \`spam\` · \`caps\` · \`invites\` (+ on/off).`
+        `⚠️ Sous-commandes : \`on\` · \`off\` · \`status\` · \`insults\` · \`spam\` · \`caps\` · \`invites\` · \`links\` · \`giffiles\` (+ on/off).`
     );
 };

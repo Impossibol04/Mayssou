@@ -75,6 +75,9 @@ function getSettings(guildId) {
         spamDupCount: typeof a.spamDupCount === 'number' ? a.spamDupCount : 3,
         spamRepeatChar: typeof a.spamRepeatChar === 'number' ? a.spamRepeatChar : 15,
         blockInvites: Boolean(a.blockInvites),
+        /** Tout lien http(s), www., aperçu embed, et/ou GIF en pièce jointe (style DraftBot) */
+        blockLinks: Boolean(a.blockLinks),
+        blockGifFiles: a.blockGifFiles !== false,
     };
 }
 
@@ -123,6 +126,42 @@ function capsRatio(content, minLetters) {
 
 function isDiscordInvite(content) {
     return /discord\.gg\/[\w-]+/i.test(content) || /discord(?:app)?\.com\/invite\//i.test(content);
+}
+
+/** Détecte une URL dans le texte : http(s) ou www. (évite les faux positifs type « mot.com » sans lien réel) */
+function hasUrlInText(content) {
+    const s = String(content || '');
+    if (/https?:\/\//i.test(s)) return true;
+    if (/\bwww\.[a-z0-9][a-z0-9.-]*\.[a-z]{2,}\b/i.test(s)) return true;
+    return false;
+}
+
+function embedHasExternalUrl(message) {
+    for (const e of message.embeds || []) {
+        const u = e.url;
+        if (u && /^https?:\/\//i.test(String(u))) return true;
+    }
+    return false;
+}
+
+function hasGifAttachment(message) {
+    if (!message.attachments?.size) return false;
+    for (const a of message.attachments.values()) {
+        const ct = (a.contentType || '').toLowerCase();
+        const name = (a.name || '').toLowerCase();
+        const url = (a.url || '').toLowerCase();
+        if (ct === 'image/gif' || ct.includes('gif')) return true;
+        if (name.endsWith('.gif') || /\.gif(\?|#|$)/i.test(url)) return true;
+    }
+    return false;
+}
+
+function shouldBlockLinks(s, message, content) {
+    if (!s.blockLinks) return false;
+    if (hasUrlInText(content)) return true;
+    if (embedHasExternalUrl(message)) return true;
+    if (s.blockGifFiles && hasGifAttachment(message)) return true;
+    return false;
 }
 
 function spamRateHit(guildId, userId, windowMs, max) {
@@ -192,6 +231,15 @@ async function runAutoModeration(message) {
         await message.delete().catch(() => {});
         await notifyChannel(message, `🚫 ${author}, les invitations Discord sont interdites ici.`);
         return 'invite';
+    }
+
+    if (shouldBlockLinks(s, message, content)) {
+        await message.delete().catch(() => {});
+        await notifyChannel(
+            message,
+            `🔗 ${author}, les liens et les GIF envoyés en fichier ne sont pas autorisés dans ce salon.`
+        );
+        return 'links';
     }
 
     if (s.insults && content.length > 0 && hasInsult(content)) {
