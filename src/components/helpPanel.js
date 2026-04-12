@@ -8,6 +8,26 @@ const HELP_SELECT_ID = 'mayssou:help';
 
 const PREFIX = (process.env.prefix || '+').trim() || '+';
 
+const GITHUB_USER = 'Impossibol04';
+const GITHUB_PROFILE = `https://github.com/${GITHUB_USER}`;
+const GITHUB_REPO = `https://github.com/${GITHUB_USER}/Mayssou`;
+
+/** Avatar GitHub (image profil, souvent mis en cache par Discord). */
+const GITHUB_AVATAR = `${GITHUB_PROFILE}.png`;
+
+const COLORS = {
+    home: 0x5865f2,
+    moderation: 0xed4245,
+    config: 0xfee75c,
+    utility: 0x57f287,
+    music: 0xff5500,
+    voice: 0x5865f2,
+    social: 0xeb459e,
+    fun: 0x9b59b6,
+    server: 0x3498db,
+    security: 0x2c3e50,
+};
+
 const CATEGORY_ALIASES = {
     accueil: 'home',
     home: 'home',
@@ -31,16 +51,16 @@ const CATEGORY_ALIASES = {
 };
 
 const CATEGORIES = [
-    { value: 'home', label: 'Accueil', emoji: '🏠' },
-    { value: 'moderation', label: 'Modération', emoji: '🛡️' },
-    { value: 'config', label: 'Configuration', emoji: '⚙️' },
-    { value: 'utility', label: 'Utilitaire', emoji: '🤓' },
-    { value: 'music', label: 'Musique', emoji: '🎵' },
-    { value: 'voice', label: 'Vocal', emoji: '🎙️' },
-    { value: 'social', label: 'Social', emoji: '🤫' },
-    { value: 'fun', label: 'Fun', emoji: '✨' },
-    { value: 'server', label: 'Serveur', emoji: '🏛️' },
-    { value: 'security', label: 'Sécurité bot', emoji: '🔐' },
+    { value: 'home', label: 'Accueil', emoji: '🏠', desc: 'Vue d’ensemble & liens' },
+    { value: 'moderation', label: 'Modération', emoji: '🛡️', desc: 'Staff & sanctions' },
+    { value: 'config', label: 'Configuration', emoji: '⚙️', desc: 'Salons, préfixe…' },
+    { value: 'utility', label: 'Utilitaire', emoji: '🤓', desc: 'Infos & outils' },
+    { value: 'music', label: 'Musique', emoji: '🎵', desc: 'Lecture & file' },
+    { value: 'voice', label: 'Vocal', emoji: '🎙️', desc: 'Hub & TTS' },
+    { value: 'social', label: 'Social', emoji: '🤫', desc: 'Confess & co.' },
+    { value: 'fun', label: 'Fun', emoji: '✨', desc: 'Jeux & détente' },
+    { value: 'server', label: 'Serveur', emoji: '🏛️', desc: 'Audit & infos' },
+    { value: 'security', label: 'Sécurité bot', emoji: '🔐', desc: 'Owner uniquement' },
 ];
 
 function resolveHelpCategory(arg) {
@@ -53,12 +73,15 @@ function buildSelectRow(current) {
     return new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId(HELP_SELECT_ID)
-            .setPlaceholder('Choisir une catégorie')
+            .setPlaceholder('✦ Choisir une catégorie…')
+            .setMinValues(1)
+            .setMaxValues(1)
             .addOptions(
                 CATEGORIES.map((c) => ({
                     label: c.label,
                     value: c.value,
                     emoji: c.emoji,
+                    description: c.desc.slice(0, 100),
                     default: c.value === current,
                 }))
             )
@@ -68,22 +91,38 @@ function buildSelectRow(current) {
 function buildHomeEmbed() {
     const p = PREFIX;
     return new EmbedBuilder()
-        .setTitle('🏠 Accueil')
-        .setColor(0x5865f2)
+        .setColor(COLORS.home)
+        .setAuthor({
+            name: `Mayssou — par ${GITHUB_USER}`,
+            iconURL: GITHUB_AVATAR,
+            url: GITHUB_PROFILE,
+        })
+        .setTitle('✦ Centre d’aide')
+        .setURL(GITHUB_REPO)
+        .setThumbnail(GITHUB_AVATAR)
         .setDescription(
             [
-                `**Mayssou** — commandes en **\`/\`** (slash) ou préfixe **\`${p}\`**.`,
+                '*Toutes les commandes en **slash** (`/`) ou avec le **préfixe** ci-dessous.*',
                 '',
-                `• Utilise **\`/help\`** ou **\`${p}help\`** pour ce panneau.`,
-                `• **\`${p}help <catégorie>\`** — ex. \`${p}help moderation\`, \`${p}help server\`.`,
+                `**Préfixe actuel (ce serveur)** — \`${p}\``,
                 '',
-                '**Quelques liens utiles**',
-                '• [Dépôt GitHub (Mayssou)](https://github.com/Impossibol04/Mayssou)',
+                '**Changer le préfixe**',
+                `Les **administrateurs** peuvent définir un préfixe unique pour ce serveur : \`${p}setprefix !\` (ou \`.\`, \`?\`, etc.) et \`${p}setprefix reset\` pour revenir au défaut. Les slash **/** ne changent jamais.`,
                 '',
-                'Choisis une catégorie dans le menu ci-dessous.',
+                '**Liens**',
+                `> [GitHub — **${GITHUB_USER}**](${GITHUB_PROFILE})`,
+                `> [Dépôt **Mayssou**](${GITHUB_REPO})`,
+                '',
+                '**Raccourcis**',
+                `• \`/help\` ou \`${p}help\` — ce panneau`,
+                `• \`${p}help moderation\` — ouvre une catégorie directement`,
+                '',
+                '*Utilise le menu déroulant pour parcourir les commandes.*',
             ].join('\n')
         )
-        .setFooter({ text: `Préfixe : ${p} • Slash : /` })
+        .setFooter({
+            text: `Mayssou · Slash / · Préfixe affiché : ${p}`,
+        })
         .setTimestamp();
 }
 
@@ -91,124 +130,122 @@ function buildCategoryEmbed(key) {
     const p = PREFIX;
     const slash = (name) => `\`/${name}\``;
     const pre = (name) => `\`${p}${name}\``;
+    const color = COLORS[key] ?? COLORS.home;
 
     const sheets = {
         moderation: {
             title: '🛡️ Modération',
+            subtitle: 'Outils staff — permissions Discord requises selon la commande.',
             body: [
                 `${pre('clear')} / \`/clear\` — nombre (1–100)`,
                 `${pre('warn')} / \`/warn\` — membre, raison`,
-                `${pre('warnlist')} / \`/warnlist\` — **tous** les membres warnés + pages / ou \`warnlist @membre\``,
+                `${pre('warnlist')} / \`/warnlist\` — **tous** les warns + pages · ou membre`,
                 `${pre('cleanwarn')} / \`/cleanwarn\` — efface les warns (\`all\` = tout)`,
-                `${pre('unmute')} / \`/unmute\` — retire le timeout`,
-                `${pre('untimeout')} / \`/untimeout\` — idem`,
-                `${pre('modnote')} / \`/modnote\` — notes staff (add/list/del)`,
+                `${pre('unmute')} / \`/unmute\` · ${pre('untimeout')} / \`/untimeout\` — fin timeout`,
+                `${pre('modnote')} / \`/modnote\` — notes staff (add / list / del)`,
                 `${pre('slowmode')} / \`/slowmode\` — secondes`,
-                `${pre('softban')} / \`/softban\` — purge messages puis déban`,
-                `${pre('purgeuser')} / \`/purgeuser\` — supprime messages d’un membre`,
+                `${pre('softban')} / \`/softban\` — purge puis déban`,
+                `${pre('purgeuser')} / \`/purgeuser\` — messages d’un membre`,
                 `${pre('report')} / \`/report\` — signalement → modlogs`,
-                `${pre('antiraid')} — pic d’arrivées + \`exempt @rôle\``,
-                `${pre('kick')} / \`/kick\` • ${pre('ban')} / \`/ban\` • ${pre('unban')} / \`/unban\``,
-                `${pre('banlist')} / \`/banlist\` — **tous** les bannis (pages + boutons)`,
-                `${pre('banmass')} / \`/banmass\` — **ban massif** (confirmation)`,
+                `${pre('antiraid')} — pic d’arrivées · \`exempt @rôle\``,
+                `${pre('kick')} / \`/kick\` · ${pre('ban')} / \`/ban\` · ${pre('unban')} / \`/unban\``,
+                `${pre('banlist')} / \`/banlist\` — liste des bannis (pages + boutons)`,
+                `${pre('banmass')} / \`/banmass\` — ban massif (confirmation)`,
                 `${pre('timeout')} / \`/timeout\` — minutes`,
-                `${pre('lock')} / \`/lock\` • ${pre('unlock')} / \`/unlock\``,
-                `${pre('addrole')} / \`/addrole\` • ${pre('removerole')} / \`/removerole\``,
+                `${pre('lock')} / \`/lock\` · ${pre('unlock')} / \`/unlock\``,
+                `${pre('addrole')} / \`/addrole\` · ${pre('removerole')} / \`/removerole\``,
                 `${pre('steal')} / \`/steal\` — emoji`,
-                `${pre('settranslate')} — autorise ou non \`translate\` (Manage Server)`,
+                `${pre('settranslate')} — activer / couper \`translate\``,
                 `${pre('vmute')}, ${pre('vunmute')}, ${pre('vdeafen')}, ${pre('vundeafen')}, ${pre('vkick')}, ${pre('vmove')} + slash`,
             ].join('\n'),
         },
         config: {
             title: '⚙️ Configuration',
+            subtitle: 'Réservé aux rôles indiqués sur chaque commande.',
             body: [
-                `${pre('setprefix')} — préfixe du serveur (admin)`,
-                `${pre('language')} — \`fr\` / \`en\` (défaut **translate**, etc.)`,
-                `${pre('setconfess')} / \`/setconfess\` — salon`,
-                `${pre('setwelcome join|leave')} / \`/setwelcome\` — sous-commandes`,
-                `${pre('setjoinvoice')} / \`/setjoinvoice\` — catégorie optionnelle`,
+                `**${pre('setprefix')}** — préfixe du serveur (admin) · \`reset\` pour défaut`,
+                `${pre('language')} — \`fr\` / \`en\` (défaut translate, etc.)`,
+                `${pre('setconfess')} / \`/setconfess\` — salon confessions`,
+                `${pre('setwelcome join|leave')} / \`/setwelcome\``,
+                `${pre('setjoinvoice')} / \`/setjoinvoice\` — hub vocaux temporaires`,
                 `${pre('deletejoinvoice')} / \`/deletejoinvoice\``,
-                `${pre('setmodlogs')} / \`/setmodlogs\` — salon des logs de modération`,
+                `${pre('setmodlogs')} / \`/setmodlogs\` — logs modération`,
             ].join('\n'),
         },
         utility: {
             title: '🤓 Utilitaire',
+            subtitle: 'Infos, outils du quotidien.',
             body: [
-                `${pre('ping')} / \`/ping\``,
-                `${pre('uptime')} / \`/uptime\``,
-                `${pre('snipe')} / \`/snipe\``,
-                `${pre('calc')} / \`/calc\``,
-                `${pre('userinfo')} / \`/userinfo\``,
-                `${pre('serverinfo')} / \`/serverinfo\``,
-                `${pre('stats')} / \`/stats\``,
-                `${pre('leaderboard')} — aussi \`${p}lb\`, \`${p}top\` / \`/leaderboard\``,
-                `${pre('afk')} / \`/afk\` — message AFK`,
-                `${pre('inviteinfo')} — staff (**Modérer** requis)`,
-                `${pre('translate')} — tiers ; \`settranslate off\` pour couper`,
+                `${pre('ping')} / \`/ping\` · ${pre('uptime')} / \`/uptime\``,
+                `${pre('snipe')} / \`/snipe\` · ${pre('calc')} / \`/calc\``,
+                `${pre('userinfo')} / \`/userinfo\` · ${pre('serverinfo')} / \`/serverinfo\``,
+                `${pre('stats')} / \`/stats\` · ${pre('leaderboard')} · \`${p}lb\` · \`${p}top\``,
+                `${pre('afk')} / \`/afk\``,
+                `${pre('inviteinfo')} — staff (Modérer requis)`,
+                `${pre('translate')} — tiers · \`settranslate off\``,
                 `${pre('weather')} <ville>`,
-                `${pre('setbirthday')} JJ/MM — rappel **#salon-système** (UTC)`,
-                `${pre('birthday')} / \`/birthday\` — voir qui a enregistré une date`,
-                `${pre('ask')}, ${pre('summarize')} — staff + **OPENAI_API_KEY**`,
+                `${pre('setbirthday')} JJ/MM · ${pre('birthday')} / \`/birthday\``,
+                `${pre('ask')}, ${pre('summarize')} — staff + \`OPENAI_API_KEY\``,
             ].join('\n'),
         },
         music: {
             title: '🎵 Musique',
+            subtitle: 'SoundCloud — même salon vocal que le bot.',
             body: [
-                `${pre('play')} / \`/play\` — karaoké option`,
+                `${pre('play')} / \`/play\` — option karaoké`,
                 `${pre('nowplaying')} (${p}np) / \`/nowplaying\``,
-                `${pre('volume')} / \`/volume\``,
-                `${pre('shuffle')} / \`/shuffle\` • ${pre('remove')} / \`/remove\``,
-                `${pre('skipto')} / \`/skipto\` • ${pre('seek')} / \`/seek\``,
-                `${pre('replay')} / \`/replay\` • ${pre('autoplay')} / \`/autoplay\``,
+                `${pre('volume')} · ${pre('shuffle')} · ${pre('remove')}`,
+                `${pre('skipto')} · ${pre('seek')} · ${pre('replay')} · ${pre('autoplay')}`,
                 `${pre('lyrics')} / \`/lyrics\``,
-                `${pre('skip')} / \`/skip\` • ${pre('stop')} / \`/stop\``,
-                `${pre('pause')} / \`/pause\` • ${pre('queue')} (${p}q) / \`/queue\``,
-                `${pre('loop')} / \`/loop\` • ${pre('leave')} / \`/leave\``,
+                `${pre('skip')} · ${pre('stop')} · ${pre('pause')} · ${pre('queue')} (${p}q)`,
+                `${pre('loop')} · ${pre('leave')}`,
             ].join('\n'),
         },
         voice: {
             title: '🎙️ Vocal',
+            subtitle: 'Hub temporaires & synthèse vocale.',
             body: [
-                '**Message privé** — dès que tu crées un vocal via le hub, le bot t’envoie un **panneau** (renom, limite, exclure, bloquer) **visible seulement par toi**. Active tes MP.',
-                `${pre('tts')} / \`/tts\` — texte (dans un vocal)`,
-                `${pre('voicename')} / \`/voicename\` — **vocal temporaire** dont tu es propriétaire`,
-                `${pre('voicelimit')} / \`/voicelimit\` — limite + **boutons** sur le salon texte`,
-                'Les vocaux temporaires viennent du hub **`setjoinvoice`**.',
+                '**Panneau privé** — en créant un vocal via le hub, le bot t’envoie un panneau (MP).',
+                `${pre('tts')} / \`/tts\``,
+                `${pre('voicename')} / \`/voicename\` · ${pre('voicelimit')} / \`/voicelimit\``,
+                'Hub : **`setjoinvoice`**',
             ].join('\n'),
         },
         social: {
             title: '🤫 Social',
+            subtitle: 'Interactions légères.',
             body: [
-                `${pre('confess')} / \`/confess\` (salon configuré)`,
+                `${pre('confess')} / \`/confess\``,
                 `${pre('poll')} / \`/poll\``,
                 `${pre('rep')} / \`/rep\` — +1 / jour / personne`,
             ].join('\n'),
         },
         fun: {
             title: '✨ Fun',
+            subtitle: 'Détente & mini-jeux.',
             body: [
                 `${pre('8ball')} / ${slash('eightball')}`,
-                `${pre('avatar')}, ${pre('banner')}, ${pre('love')}, ${pre('rate')}, ${pre('gay')}, ${pre('67')} + slash`,
-                `${pre('level')} / \`/level\` — XP messages (cooldown)`,
-                `${pre('ship')} / \`/ship\` — compatibilité aléatoire`,
-                `Note : \`/sixseven\` = ${pre('67')}`,
+                `${pre('avatar')}, ${pre('banner')}, ${pre('love')}, ${pre('rate')}, ${pre('gay')}, ${pre('67')}`,
+                `${pre('level')} / \`/level\` · ${pre('ship')} / \`/ship\``,
+                `\`/sixseven\` = ${pre('67')}`,
             ].join('\n'),
         },
         server: {
             title: '🏛️ Serveur',
+            subtitle: 'Audit & métadonnées.',
             body: [
-                `${pre('audit')} / \`/audit\` — derniers audits (permission requise)`,
+                `${pre('audit')} / \`/audit\` — journal d’audit`,
                 `${pre('roleinfo')} / \`/roleinfo\``,
                 `${pre('channelinfo')} / \`/channelinfo\``,
-                `${pre('emojiinfo')} / \`/emojiinfo\` — emoji **du serveur**`,
+                `${pre('emojiinfo')} / \`/emojiinfo\``,
             ].join('\n'),
         },
         security: {
-            title: '🔐 Sécurité bot (owner)',
+            title: '🔐 Sécurité bot',
+            subtitle: 'Réservé au propriétaire (`OWNER_ID`).',
             body: [
-                `Variable d’environnement **\`OWNER_ID\`** = ton ID Discord.`,
                 `${pre('debug')} / \`/debug\` — état du bot`,
-                `${pre('blacklist')} / \`/blacklist\` — serveurs interdits (variable \`OWNER_ID\` requise)`,
+                `${pre('blacklist')} / \`/blacklist\` — serveurs interdits`,
             ].join('\n'),
         },
     };
@@ -216,11 +253,20 @@ function buildCategoryEmbed(key) {
     const sheet = sheets[key];
     if (!sheet) return buildHomeEmbed();
 
+    const desc = `*${sheet.subtitle}*\n\n${sheet.body}`;
+
     return new EmbedBuilder()
+        .setColor(color)
+        .setAuthor({
+            name: 'Mayssou · Aide',
+            iconURL: GITHUB_AVATAR,
+            url: GITHUB_REPO,
+        })
         .setTitle(sheet.title)
-        .setColor(0x2f3136)
-        .setDescription(sheet.body)
-        .setFooter({ text: `Retour : menu ci-dessous • ${p} ou /` })
+        .setDescription(desc.slice(0, 4096))
+        .setFooter({
+            text: `Menu ci-dessous · ${p} ou / · ${GITHUB_USER}`,
+        })
         .setTimestamp();
 }
 
