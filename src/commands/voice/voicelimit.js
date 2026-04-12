@@ -1,3 +1,4 @@
+const { EmbedBuilder } = require('discord.js');
 const {
     buildVoicelimitButtonRow,
     applyVoiceUserLimit,
@@ -17,12 +18,20 @@ module.exports = async (client, message, args) => {
     if (!result.ok) return message.reply(result.error);
 
     try {
-        await message.react("✅");
-        const text = result.limit === 0
-            ? "🔓 Salon illimité !"
-            : `👥 Limite fixée à **${result.limit} personne(s)** !`;
+        await message.react('✅');
+        const embed = new EmbedBuilder()
+            .setColor(0x5865f2)
+            .setAuthor({ name: 'Limite du vocal', iconURL: client.user.displayAvatarURL({ size: 64 }) })
+            .setTitle(result.limit === 0 ? '🔓 Salon illimité' : `👥 Limite : ${result.limit} place(s)`)
+            .setDescription(
+                `Salon **${voiceChannel.name}**\n\n` +
+                    'Tu peux ajuster en un clic avec les boutons ci-dessous.'
+            )
+            .setFooter({ text: 'Vocal temporaire — propriétaire uniquement' })
+            .setTimestamp();
+
         await message.channel.send({
-            content: text,
+            embeds: [embed],
             components: [buildVoicelimitButtonRow(voiceChannel.id)],
         });
     } catch (err) {

@@ -1,21 +1,21 @@
 const { EmbedBuilder } = require('discord.js');
 
 module.exports = async (client, message, args) => {
-    // On crée l'embed de chargement
-    const msg = await message.reply("🏓 Calcul du ping...");
+    const msg = await message.reply({ embeds: [new EmbedBuilder().setColor(0x5865f2).setDescription('🏓 Mesure…')] });
 
     const ping = msg.createdTimestamp - message.createdTimestamp;
     const apiPing = client.ws.ping;
 
     const embed = new EmbedBuilder()
-        .setTitle("🏓 Pong !")
-        .setColor("#0099ff")
+        .setAuthor({ name: 'Latence', iconURL: client.user.displayAvatarURL({ size: 64 }) })
+        .setTitle('🏓 Pong')
+        .setColor(0x5865f2)
         .addFields(
-            { name: "🤖 Latence du Bot", value: `\`${ping}ms\``, inline: true },
-            { name: "💻 Latence API", value: `\`${apiPing}ms\``, inline: true }
+            { name: 'Aller-retour', value: `\`${ping} ms\``, inline: true },
+            { name: 'Gateway', value: apiPing < 0 ? '`—`' : `\`${apiPing} ms\``, inline: true }
         )
-        .setFooter({ text: `Demandé par ${message.author.tag}` })
+        .setFooter({ text: message.author.tag })
         .setTimestamp();
 
-    await msg.edit({ content: null, embeds: [embed] });
+    await msg.edit({ embeds: [embed] });
 };

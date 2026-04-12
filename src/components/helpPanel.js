@@ -202,6 +202,7 @@ function buildCategoryEmbed(key, botIconURL) {
             subtitle: 'SoundCloud — même salon vocal que le bot.',
             body: [
                 `${pre('play')} / \`/play\` — option karaoké`,
+                `${pre('join')} / \`/join\` — rejoint ton vocal (sans lancer de piste)`,
                 `${pre('nowplaying')} (${p}np) / \`/nowplaying\``,
                 `${pre('volume')} · ${pre('shuffle')} · ${pre('remove')}`,
                 `${pre('skipto')} · ${pre('seek')} · ${pre('replay')} · ${pre('autoplay')}`,

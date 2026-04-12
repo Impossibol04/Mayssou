@@ -16,46 +16,53 @@ function ownerReplyOpts(interaction, content) {
     return { content };
 }
 
-function buildOwnerEmbed(voiceChannel, guild) {
+function buildOwnerEmbed(client, voiceChannel, guild) {
+    const icon = client.user?.displayAvatarURL({ extension: 'png', size: 128 });
     return new EmbedBuilder()
-        .setTitle('🎛️ Contrôle de ton vocal temporaire')
         .setColor(0x5865f2)
+        .setAuthor({ name: 'Mayssou · Vocal temporaire', iconURL: icon })
+        .setTitle('🎛️ Panneau de contrôle')
         .setDescription(
             [
-                `**Salon :** ${voiceChannel.name}`,
-                `**Serveur :** ${guild.name}`,
+                `**Salon** — ${voiceChannel.name}`,
+                `**Serveur** — ${guild.name}`,
                 '',
-                '· **Renommer** — nouveau nom (sans le préfixe 🔊)',
-                '· **Limite** — nombre de places (0–99, 0 = illimité)',
-                '· **Exclure** — déconnecte quelqu\'un qui est dans ton vocal',
-                '· **Bloquer** — empêche quelqu\'un de rejoindre ce salon',
+                '━━━━━━━━━━━━━━━━━━━━',
                 '',
-                '**Préréglages** — limite en un clic (ligne du bas)',
+                '📝 **Renommer** — nouveau nom (sans le préfixe 🔊)',
+                '🔢 **Limite** — places (0–99, 0 = illimité)',
+                '⏏️ **Exclure** — déconnecte quelqu’un dans ton vocal',
+                '🚫 **Bloquer** — empêche quelqu’un de rejoindre',
+                '',
+                '**Raccourcis** — préréglages de limite sur la 2ᵉ ligne.',
             ].join('\n')
         )
-        .setFooter({ text: 'Seul toi vois ce message' });
+        .setFooter({ text: 'Réservé au propriétaire du vocal · MP ou salon du vocal' });
 }
 
 function buildOwnerComponents(channelId) {
     const rowMain = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`vcp:rn:${channelId}`).setLabel('Renommer').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId(`vcp:lm:${channelId}`).setLabel('Limite').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`vcp:xp:${channelId}`).setLabel('Exclure').setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId(`vcp:bl:${channelId}`).setLabel('Bloquer').setStyle(ButtonStyle.Danger)
+        new ButtonBuilder().setCustomId(`vcp:rn:${channelId}`).setLabel('Renommer').setEmoji('📝').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(`vcp:lm:${channelId}`).setLabel('Limite').setEmoji('🔢').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`vcp:xp:${channelId}`).setLabel('Exclure').setEmoji('⏏️').setStyle(ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId(`vcp:bl:${channelId}`).setLabel('Bloquer').setEmoji('🚫').setStyle(ButtonStyle.Danger)
     );
     const rowQuick = new ActionRowBuilder().addComponents(
         PRESET_LIMITS.map((lim) =>
             new ButtonBuilder()
                 .setCustomId(`vcp:ql:${channelId}:${lim}`)
-                .setLabel(lim === 0 ? 'Illimité' : String(lim))
+                .setLabel(lim === 0 ? '∞ Illimité' : String(lim))
                 .setStyle(lim === 0 ? ButtonStyle.Secondary : ButtonStyle.Success)
         )
     );
-    return [rowMain, rowQuick];
+    const rowClose = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`vcp:cl:${channelId}`).setLabel('Fermer le panneau').setEmoji('✖️').setStyle(ButtonStyle.Secondary)
+    );
+    return [rowMain, rowQuick, rowClose];
 }
 
 async function sendVoiceOwnerPanel(client, member, voiceChannel) {
-    const embed = buildOwnerEmbed(voiceChannel, member.guild);
+    const embed = buildOwnerEmbed(client, voiceChannel, member.guild);
     const components = buildOwnerComponents(voiceChannel.id);
 
     // Envoie dans le tchat intégré du salon vocal (priorité)
@@ -93,7 +100,9 @@ function parseOwnerChannelId(interaction) {
         return m ? tryId(m[2]) : null;
     }
     if (interaction.isButton()) {
-        let m = interaction.customId.match(/^vcp:(rn|lm|xp|bl):(\d+)$/);
+        let m = interaction.customId.match(/^vcp:cl:(\d+)$/);
+        if (m) return tryId(m[1]);
+        m = interaction.customId.match(/^vcp:(rn|lm|xp|bl):(\d+)$/);
         if (m) return tryId(m[2]);
         m = interaction.customId.match(/^vcp:ql:(\d+):(\d+)$/);
         if (m) return tryId(m[1]);
@@ -162,6 +171,17 @@ async function handleVoiceOwnerPanelInteraction(bot, interaction) {
         const channelId = parseOwnerChannelId(interaction);
         if (!channelId) {
             await interaction.reply(ownerReplyOpts(interaction, '❌ Tu n\'es pas propriétaire de ce salon (ou il n\'existe plus).')).catch(() => {});
+            return true;
+        }
+
+        if (interaction.customId.match(/^vcp:cl:\d+$/)) {
+            await interaction.deferUpdate().catch(() => {});
+            const closed = new EmbedBuilder()
+                .setColor(0x95a5a6)
+                .setTitle('✖️ Panneau fermé')
+                .setDescription('Tu peux rouvrir un panneau en recréant ou en rejoignant ton vocal temporaire si le bot le renvoie.')
+                .setTimestamp();
+            await interaction.message.edit({ embeds: [closed], components: [] }).catch(() => {});
             return true;
         }
 

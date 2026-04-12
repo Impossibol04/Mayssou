@@ -1,4 +1,4 @@
-const { AttachmentBuilder } = require('discord.js');
+const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
 const { generateStatsCard } = require('../../utils/statsCard');
 const {
     getMessageStats, getVoiceStats,
@@ -13,7 +13,13 @@ module.exports = async (client, message, args) => {
     const guildId = message.guild.id;
     const userId = user.id;
 
-    const loading = await message.reply("⏳ Génération de la carte...");
+    const loading = await message.reply({
+        embeds: [
+            new EmbedBuilder()
+                .setColor(0x5865f2)
+                .setDescription('⏳ **Génération de la carte…**'),
+        ],
+    });
 
     // Calcule le temps vocal en cours si le membre est en vocal
     const voiceSession = client.voiceSessions?.get(`${userId}_${guildId}`);
@@ -72,6 +78,14 @@ module.exports = async (client, message, args) => {
         message.channel.send({ files: [attachment] });
     } catch (err) {
         console.error("Erreur génération carte:", err);
-        await loading.edit("❌ Erreur lors de la génération de la carte.");
+        await loading
+            .edit({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(0xe74c3c)
+                        .setDescription('❌ Erreur lors de la génération de la carte.'),
+                ],
+            })
+            .catch(() => {});
     }
 };

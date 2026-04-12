@@ -67,8 +67,18 @@ async function getCachedBanList(guild) {
 
 function navRow(ids, disablePrev, disableNext) {
     return new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(ids.prev).setLabel('◀ Précédent').setStyle(ButtonStyle.Secondary).setDisabled(disablePrev),
-        new ButtonBuilder().setCustomId(ids.next).setLabel('Suivant ▶').setStyle(ButtonStyle.Secondary).setDisabled(disableNext)
+        new ButtonBuilder()
+            .setCustomId(ids.prev)
+            .setLabel('Précédent')
+            .setEmoji('◀')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disablePrev),
+        new ButtonBuilder()
+            .setCustomId(ids.next)
+            .setLabel('Suivant')
+            .setEmoji('▶')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disableNext)
     );
 }
 

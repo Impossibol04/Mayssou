@@ -7,6 +7,41 @@ const {
     ComponentType,
 } = require('discord.js');
 
+const COLOR_WARN = 0xf39c12;
+const COLOR_DANGER = 0xe74c3c;
+const COLOR_OK = 0x57f287;
+const COLOR_MUTED = 0x95a5a6;
+const COLOR_PARTIAL = 0xe67e22;
+
+function botThumb(client) {
+    return client.user?.displayAvatarURL({ extension: 'png', size: 128 });
+}
+
+function banmassButtonRow(triggerMessageId, disabled = false) {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`mayssou:bm:yes:${triggerMessageId}`)
+            .setLabel('Confirmer le ban massif')
+            .setEmoji('🔨')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(disabled),
+        new ButtonBuilder()
+            .setCustomId(`mayssou:bm:no:${triggerMessageId}`)
+            .setLabel('Annuler')
+            .setEmoji('✖️')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled)
+    );
+}
+
+function progressBar(done, total) {
+    const w = 12;
+    const filled = total <= 0 ? 0 : Math.round((done / total) * w);
+    const bar = '█'.repeat(filled) + '░'.repeat(Math.max(0, w - filled));
+    const pct = total <= 0 ? 0 : Math.round((done / total) * 100);
+    return `\`${bar}\` **${pct}%** (${done}/${total})`;
+}
+
 module.exports = async (client, message, args) => {
     if (!message.member.permissions.has(PermissionFlagsBits.BanMembers))
         return message.reply("❌ Tu n'as pas la permission de bannir des membres.");
@@ -36,45 +71,73 @@ module.exports = async (client, message, args) => {
             .map((id) => `<@${id}>`)
             .join(' ') + (targetIds.length > 10 ? ` … (+${targetIds.length - 10})` : '');
 
+    const triggerId = message.id;
     const confirmEmbed = new EmbedBuilder()
-        .setTitle('⚠️ CONFIRMATION BAN MASSIF')
+        .setColor(COLOR_WARN)
+        .setAuthor({ name: 'Ban massif — confirmation', iconURL: botThumb(client) })
+        .setTitle('⚠️ Action irréversible')
         .setDescription(
-            `**${targetIds.length} utilisateur(s)** vont être bannis.\n\n` +
-                `**Cibles :** ${preview}\n` +
-                `**Raison :** ${reason}\n\n` +
-                `Cette action est **irréversible**.`
+            `**${targetIds.length}** compte(s) seront bannis de **${message.guild.name}**.`
         )
-        .setColor('Orange')
+        .addFields(
+            { name: 'Cibles', value: preview.slice(0, 1024), inline: false },
+            { name: 'Raison', value: reason.slice(0, 1024), inline: false },
+            {
+                name: 'Sécurité',
+                value: '• Max 25 par commande\n• Toi et le bot ne seront pas bannis\n• Délai **40 s** pour confirmer',
+                inline: false,
+            }
+        )
+        .setFooter({ text: `Demandé par ${message.author.tag}` })
         .setTimestamp();
 
-    const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('confirm_banmass').setLabel('✅ Confirmer').setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId('cancel_banmass').setLabel('❌ Annuler').setStyle(ButtonStyle.Secondary)
-    );
-
-    const confirmMessage = await message.reply({ embeds: [confirmEmbed], components: [row] });
+    const confirmMessage = await message.reply({
+        embeds: [confirmEmbed],
+        components: [banmassButtonRow(triggerId)],
+    });
 
     const collector = confirmMessage.createMessageComponentCollector({
         componentType: ComponentType.Button,
         time: 40_000,
+        filter: (i) =>
+            i.user.id === message.author.id &&
+            (i.customId === `mayssou:bm:yes:${triggerId}` || i.customId === `mayssou:bm:no:${triggerId}`),
     });
 
     collector.on('collect', async (interaction) => {
-        if (interaction.user.id !== message.author.id)
-            return interaction.reply({ content: "❌ Seul l'auteur peut confirmer.", ephemeral: true });
-
-        if (interaction.customId === 'cancel_banmass') {
-            await interaction.update({ content: '✅ Ban massif annulé.', embeds: [], components: [] });
+        if (interaction.customId === `mayssou:bm:no:${triggerId}`) {
+            const cancelled = new EmbedBuilder()
+                .setColor(COLOR_MUTED)
+                .setAuthor({ name: 'Ban massif', iconURL: botThumb(client) })
+                .setTitle('✖️ Annulé')
+                .setDescription('Aucun bannissement n’a été effectué.')
+                .setTimestamp();
+            await interaction.update({ embeds: [cancelled], components: [banmassButtonRow(triggerId, true)] });
             return;
         }
 
-        await interaction.update({ content: '🔄 Lancement du ban massif...', embeds: [], components: [] });
+        const running = new EmbedBuilder()
+            .setColor(COLOR_DANGER)
+            .setAuthor({ name: 'Ban massif en cours…', iconURL: botThumb(client) })
+            .setTitle('🔨 Exécution')
+            .setDescription(progressBar(0, targetIds.length))
+            .setTimestamp();
+        await interaction.update({ embeds: [running], components: [banmassButtonRow(triggerId, true)] });
 
         const success = [];
         const failed = [];
         let processed = 0;
 
-        const progressMsg = await message.channel.send(`🔄 Bannissement en cours... 0/${targetIds.length}`);
+        const progressEmbed = (done) =>
+            new EmbedBuilder()
+                .setColor(COLOR_DANGER)
+                .setAuthor({ name: 'Ban massif en cours…', iconURL: botThumb(client) })
+                .setTitle('🔨 Bannissements')
+                .setDescription(progressBar(done, targetIds.length))
+                .setFooter({ text: 'Merci de patienter — rate limit Discord' })
+                .setTimestamp();
+
+        const progressMsg = await message.channel.send({ embeds: [progressEmbed(0)] });
 
         for (const id of targetIds) {
             processed++;
@@ -104,27 +167,33 @@ module.exports = async (client, message, args) => {
                 failed.push(`\`${id}\` (erreur)`);
             }
 
-            if (processed % 5 === 0 || processed === targetIds.length)
-                await progressMsg.edit(`🔄 Bannissement en cours... ${processed}/${targetIds.length}`).catch(() => {});
+            if (processed % 5 === 0 || processed === targetIds.length) {
+                await progressMsg.edit({ embeds: [progressEmbed(processed)] }).catch(() => {});
+            }
 
             await new Promise((r) => setTimeout(r, 950));
         }
 
+        const allOk = failed.length === 0;
+        const resultColor = allOk ? COLOR_OK : success.length === 0 ? COLOR_DANGER : COLOR_PARTIAL;
+
         const resultEmbed = new EmbedBuilder()
             .setTitle('🔨 Ban massif terminé')
-            .setColor('Orange')
+            .setColor(resultColor)
+            .setAuthor({ name: message.guild.name, iconURL: message.guild.iconURL({ size: 64 }) || undefined })
             .addFields(
                 { name: '👮 Modérateur', value: `${message.author}`, inline: true },
                 { name: '📊 Total tenté', value: `${targetIds.length}`, inline: true },
+                { name: '✅ Succès', value: `${success.length}`, inline: true },
                 {
-                    name: `✅ Succès (${success.length})`,
+                    name: `Détail succès (${success.length})`,
                     value: success.length > 0 ? success.join(', ').slice(0, 1024) : 'Aucun',
                 }
             );
 
         if (failed.length > 0)
             resultEmbed.addFields({
-                name: `❌ Échecs (${failed.length})`,
+                name: `Échecs (${failed.length})`,
                 value: failed.join(', ').slice(0, 1024),
             });
 
@@ -133,9 +202,16 @@ module.exports = async (client, message, args) => {
     });
 
     collector.on('end', (collected) => {
-        if (collected.size === 0 && confirmMessage.editable)
+        if (collected.size === 0 && confirmMessage.editable) {
+            const expired = new EmbedBuilder()
+                .setColor(COLOR_MUTED)
+                .setAuthor({ name: 'Ban massif', iconURL: botThumb(client) })
+                .setTitle('⏰ Délai expiré')
+                .setDescription('Confirmation non reçue — **aucun** bannissement.')
+                .setTimestamp();
             confirmMessage
-                .edit({ content: '⏰ Délai expiré – Ban massif annulé.', embeds: [], components: [] })
+                .edit({ embeds: [expired], components: [banmassButtonRow(triggerId, true)] })
                 .catch(() => {});
+        }
     });
 };

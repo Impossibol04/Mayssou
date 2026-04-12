@@ -351,6 +351,11 @@ module.exports = [
         toArgs: () => [],
     },
     {
+        data: new SlashCommandBuilder().setName('join').setDescription('Rejoindre ton salon vocal (musique)'),
+        commandName: 'join',
+        toArgs: () => [],
+    },
+    {
         data: new SlashCommandBuilder().setName('pause').setDescription('Pause / reprise de la lecture'),
         commandName: 'pause',
         toArgs: () => [],

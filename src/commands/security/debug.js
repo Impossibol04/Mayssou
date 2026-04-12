@@ -7,7 +7,8 @@ module.exports = async (client, message, args) => {
 
     const mem = process.memoryUsage();
     const embed = new EmbedBuilder()
-        .setTitle('🛠️ Debug bot')
+        .setAuthor({ name: 'Mayssou · debug', iconURL: client.user.displayAvatarURL({ size: 64 }) })
+        .setTitle('🛠️ État du processus')
         .setColor(0x2ecc71)
         .addFields(
             { name: 'Serveurs', value: `${client.guilds.cache.size}`, inline: true },

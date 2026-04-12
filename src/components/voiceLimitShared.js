@@ -10,8 +10,8 @@ function buildVoicelimitButtonRow(channelId) {
         PRESET_LIMITS.map((lim) =>
             new ButtonBuilder()
                 .setCustomId(`vl:${channelId}:${lim}`)
-                .setLabel(lim === 0 ? 'Illimité' : String(lim))
-                .setStyle(lim === 0 ? ButtonStyle.Secondary : ButtonStyle.Primary)
+                .setLabel(lim === 0 ? '∞ Illimité' : String(lim))
+                .setStyle(lim === 0 ? ButtonStyle.Secondary : ButtonStyle.Success)
         )
     );
 }
