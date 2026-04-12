@@ -29,7 +29,7 @@ module.exports = [
         customExecute: async (bot, interaction) => {
             const raw = interaction.options.getString('categorie');
             const cat = resolveHelpCategory(raw || 'home');
-            await interaction.reply(buildHelpPayload(cat));
+            await interaction.editReply(buildHelpPayload(cat));
         },
     },
     {
@@ -147,7 +147,7 @@ module.exports = [
             const reason = interaction.options.getString('raison') || 'Mass Ban';
 
             if (users.length === 0)
-                return interaction.reply({ content: '❌ Aucun utilisateur valide.', ephemeral: true });
+                return interaction.followUp({ content: '❌ Aucun utilisateur valide.', ephemeral: true });
 
             const fakeArgs = [...users.map((u) => u.id), ...reason.split(' ')];
 
@@ -165,9 +165,13 @@ module.exports = [
         },
     },
     {
-        data: new SlashCommandBuilder().setName('banlist').setDescription('Liste des bannissements (aperçu)'),
+        data: new SlashCommandBuilder().setName('banlist').setDescription('Liste des bannissements (paginé + boutons)')
+            .addIntegerOption((o) => o.setName('page').setDescription('Page (1 par défaut)').setRequired(false).setMinValue(1).setMaxValue(500)),
         commandName: 'banlist',
-        toArgs: () => [],
+        toArgs: (i) => {
+            const p = i.options.getInteger('page');
+            return p ? [String(p)] : [];
+        },
     },
     {
         data: new SlashCommandBuilder().setName('timeout').setDescription('Exclure temporairement (timeout)')
@@ -491,7 +495,7 @@ module.exports = [
                 return;
             }
             if (!u) {
-                return interaction.reply({ ephemeral: true, content: '❌ Choisis un membre ou active **tout**.' });
+                return interaction.followUp({ ephemeral: true, content: '❌ Choisis un membre ou active **tout**.' });
             }
             const mem = await interaction.guild.members.fetch(u.id).catch(() => null);
             const adapter = createSlashMessageAdapter(interaction, {
@@ -632,12 +636,19 @@ module.exports = [
         },
     },
     {
-        data: new SlashCommandBuilder().setName('warnlist').setDescription('Liste des warns enregistrés')
-            .addUserOption((o) => o.setName('membre').setDescription('Membre').setRequired(true)),
+        data: new SlashCommandBuilder().setName('warnlist').setDescription('Liste des warns (serveur ou membre)')
+            .addUserOption((o) => o.setName('membre').setDescription('Détail d’un membre (vide = tout le serveur)').setRequired(false))
+            .addIntegerOption((o) => o.setName('page').setDescription('Numéro de page (1+)').setRequired(false).setMinValue(1).setMaxValue(500)),
         commandName: 'warnlist',
-        toArgs: (i) => [i.options.getUser('membre').id],
+        toArgs: (i) => {
+            const u = i.options.getUser('membre');
+            const p = i.options.getInteger('page');
+            if (u) return p ? [u.id, String(p)] : [u.id];
+            return p ? [String(p)] : [];
+        },
         enrichMentions: async (i) => {
             const u = i.options.getUser('membre');
+            if (!u) return {};
             return { mentionUsers: new Collection([[u.id, u]]) };
         },
     },
@@ -812,7 +823,7 @@ module.exports = [
         toArgs: () => [],
     },
     {
-        data: new SlashCommandBuilder().setName('guildblacklist').setDescription('Blacklist serveurs (owner bot)')
+        data: new SlashCommandBuilder().setName('blacklist').setDescription('Blacklist serveurs (propriétaire du bot)')
             .addStringOption((o) =>
                 o.setName('action').setDescription('Action').setRequired(false).addChoices(
                     { name: 'Lister', value: 'list' },
@@ -820,7 +831,7 @@ module.exports = [
                     { name: 'Retirer', value: 'remove' }
                 ))
             .addStringOption((o) => o.setName('id_serveur').setDescription('ID Discord du serveur').setRequired(false)),
-        commandName: 'guildblacklist',
+        commandName: 'blacklist',
         toArgs: (i) => {
             const a = i.options.getString('action') || 'list';
             const id = i.options.getString('id_serveur');
@@ -832,5 +843,10 @@ module.exports = [
             .addBooleanOption((o) => o.setName('actif').setDescription('true = translate autorisé').setRequired(true)),
         commandName: 'settranslate',
         toArgs: (i) => [i.options.getBoolean('actif') ? 'on' : 'off'],
+    },
+    {
+        data: new SlashCommandBuilder().setName('birthday').setDescription('Voir les anniversaires enregistrés sur le serveur'),
+        commandName: 'birthday',
+        toArgs: () => [],
     },
 ];

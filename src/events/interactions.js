@@ -4,6 +4,7 @@ const slashRegistry = require('../slash/registry');
 const { applyVoiceUserLimit, buildVoicelimitButtonRow } = require('../components/voiceLimitShared');
 const { HELP_SELECT_ID, buildHelpPayload } = require('../components/helpPanel');
 const { handleVoiceOwnerPanelInteraction } = require('../components/voiceOwnerPanel');
+const { handleWarnlistButton, handleBanlistButton } = require('../components/modListPagination');
 
 async function registerSlashCommands(client) {
     const token = process.env.token;
@@ -26,11 +27,7 @@ async function registerSlashCommands(client) {
     }
 }
 
-async function runSlashEntry(bot, interaction, entry) {
-    if (entry.customExecute) {
-        await entry.customExecute(bot, interaction);
-        return;
-    }
+async function runSlashEntryAfterDefer(bot, interaction, entry) {
     const cmd = bot.commands.get(entry.commandName);
     if (!cmd) return;
     const enrich = entry.enrichMentions ? await entry.enrichMentions(interaction) : {};
@@ -47,6 +44,17 @@ module.exports = (bot) => {
     bot.once('ready', () => registerSlashCommands(bot));
 
     bot.on('interactionCreate', async (interaction) => {
+        if (interaction.isButton()) {
+            if (interaction.customId.startsWith('mayssou:wl:')) {
+                const ok = await handleWarnlistButton(interaction);
+                if (ok) return;
+            }
+            if (interaction.customId.startsWith('mayssou:bl:')) {
+                const ok = await handleBanlistButton(interaction);
+                if (ok) return;
+            }
+        }
+
         if (interaction.isButton() && interaction.customId.startsWith('vl:')) {
             const parts = interaction.customId.split(':');
             if (parts.length !== 3) return;
@@ -68,9 +76,10 @@ module.exports = (bot) => {
 
             try {
                 await interaction.deferUpdate();
-                const text = result.limit === 0
-                    ? "🔓 Salon illimité !"
-                    : `👥 Limite fixée à **${result.limit} personne(s)** !`;
+                const text =
+                    result.limit === 0
+                        ? '🔓 Salon illimité !'
+                        : `👥 Limite fixée à **${result.limit} personne(s)** !`;
                 await interaction.message.edit({
                     content: text,
                     components: [buildVoicelimitButtonRow(voiceChannel.id)],
@@ -78,7 +87,7 @@ module.exports = (bot) => {
             } catch (err) {
                 console.error(err);
                 try {
-                    await interaction.followUp({ ephemeral: true, content: "❌ Impossible de mettre à jour le message." });
+                    await interaction.followUp({ ephemeral: true, content: '❌ Impossible de mettre à jour le message.' });
                 } catch (_) {}
             }
             return;
@@ -109,15 +118,23 @@ module.exports = (bot) => {
         if (!entry) return;
 
         try {
-            await runSlashEntry(bot, interaction, entry);
+            await interaction.deferReply({ ephemeral: false });
+
+            if (entry.customExecute) {
+                await entry.customExecute(bot, interaction);
+            } else {
+                await runSlashEntryAfterDefer(bot, interaction, entry);
+            }
         } catch (err) {
             console.error('Erreur slash:', err);
-            const payload = { content: "❌ Une erreur est survenue dans cette commande.", ephemeral: true };
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp(payload).catch(() => {});
-            } else {
-                await interaction.reply(payload).catch(() => {});
-            }
+            const payload = { content: '❌ Une erreur est survenue dans cette commande.', ephemeral: true };
+            try {
+                if (interaction.deferred || interaction.replied) {
+                    await interaction.followUp(payload);
+                } else {
+                    await interaction.reply(payload);
+                }
+            } catch (_) {}
         }
     });
 };

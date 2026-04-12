@@ -52,7 +52,7 @@ module.exports = async (client, message, args) => {
         new ButtonBuilder().setCustomId('cancel_banmass').setLabel('❌ Annuler').setStyle(ButtonStyle.Secondary)
     );
 
-    const confirmMessage = await message.channel.send({ embeds: [confirmEmbed], components: [row] });
+    const confirmMessage = await message.reply({ embeds: [confirmEmbed], components: [row] });
 
     const collector = confirmMessage.createMessageComponentCollector({
         componentType: ComponentType.Button,

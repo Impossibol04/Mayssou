@@ -1,9 +1,9 @@
 const { EmbedBuilder } = require('discord.js');
 const { isBotOwner } = require('../../utils/commandGuards');
+const { ownerCommandDeniedLines } = require('../../utils/ownerMessages');
 
 module.exports = async (client, message, args) => {
-    if (!isBotOwner(message.author.id))
-        return message.reply('❌ Réservé au **propriétaire du bot** (`OWNER_ID` dans l’environnement).');
+    if (!isBotOwner(message.author.id)) return message.reply(ownerCommandDeniedLines());
 
     const mem = process.memoryUsage();
     const embed = new EmbedBuilder()
@@ -23,5 +23,5 @@ module.exports = async (client, message, args) => {
         )
         .setTimestamp();
 
-    message.channel.send({ embeds: [embed] });
+    message.reply({ embeds: [embed] });
 };

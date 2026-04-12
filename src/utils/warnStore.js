@@ -64,4 +64,13 @@ function clearAllWarnsInGuild(guildId) {
     return total;
 }
 
-module.exports = { getWarns, addWarn, clearWarnsForUser, clearAllWarnsInGuild };
+/** Tous les utilisateurs warnés sur le serveur, triés par nombre de warns décroissant */
+function getGuildWarnSummary(guildId) {
+    const db = _load();
+    const g = db[guildId] || {};
+    return Object.entries(g)
+        .map(([userId, warns]) => ({ userId, count: warns.length, warns }))
+        .sort((a, b) => b.count - a.count || a.userId.localeCompare(b.userId));
+}
+
+module.exports = { getWarns, addWarn, clearWarnsForUser, clearAllWarnsInGuild, getGuildWarnSummary };

@@ -98,7 +98,7 @@ function buildCategoryEmbed(key) {
             body: [
                 `${pre('clear')} / \`/clear\` — nombre (1–100)`,
                 `${pre('warn')} / \`/warn\` — membre, raison`,
-                `${pre('warnlist')} / \`/warnlist\` — liste des warns`,
+                `${pre('warnlist')} / \`/warnlist\` — **tous** les membres warnés + pages / ou \`warnlist @membre\``,
                 `${pre('cleanwarn')} / \`/cleanwarn\` — efface les warns (\`all\` = tout)`,
                 `${pre('unmute')} / \`/unmute\` — retire le timeout`,
                 `${pre('untimeout')} / \`/untimeout\` — idem`,
@@ -109,7 +109,7 @@ function buildCategoryEmbed(key) {
                 `${pre('report')} / \`/report\` — signalement → modlogs`,
                 `${pre('antiraid')} — pic d’arrivées + \`exempt @rôle\``,
                 `${pre('kick')} / \`/kick\` • ${pre('ban')} / \`/ban\` • ${pre('unban')} / \`/unban\``,
-                `${pre('banlist')} / \`/banlist\` — **liste** des bannis`,
+                `${pre('banlist')} / \`/banlist\` — **tous** les bannis (pages + boutons)`,
                 `${pre('banmass')} / \`/banmass\` — **ban massif** (confirmation)`,
                 `${pre('timeout')} / \`/timeout\` — minutes`,
                 `${pre('lock')} / \`/lock\` • ${pre('unlock')} / \`/unlock\``,
@@ -147,6 +147,7 @@ function buildCategoryEmbed(key) {
                 `${pre('translate')} — tiers ; \`settranslate off\` pour couper`,
                 `${pre('weather')} <ville>`,
                 `${pre('setbirthday')} JJ/MM — rappel **#salon-système** (UTC)`,
+                `${pre('birthday')} / \`/birthday\` — voir qui a enregistré une date`,
                 `${pre('ask')}, ${pre('summarize')} — staff + **OPENAI_API_KEY**`,
             ].join('\n'),
         },
@@ -207,7 +208,7 @@ function buildCategoryEmbed(key) {
             body: [
                 `Variable d’environnement **\`OWNER_ID\`** = ton ID Discord.`,
                 `${pre('debug')} / \`/debug\` — état du bot`,
-                `${pre('guildblacklist')} / \`/guildblacklist\` — add/remove/list serveurs interdits`,
+                `${pre('blacklist')} / \`/blacklist\` — serveurs interdits (variable \`OWNER_ID\` requise)`,
             ].join('\n'),
         },
     };

@@ -2,6 +2,7 @@ const { Collection } = require('discord.js');
 
 /**
  * Imitation minimale de message pour réutiliser les handlers prefix avec les slash commands.
+ * Après un `deferReply()`, le premier `reply()` utilise `editReply`.
  */
 function createSlashMessageAdapter(interaction, options = {}) {
     const {
@@ -40,6 +41,10 @@ function createSlashMessageAdapter(interaction, options = {}) {
             const opts = normalize(payload);
             if (!replied) {
                 replied = true;
+                if (interaction.deferred) {
+                    await interaction.editReply(opts);
+                    return interaction.fetchReply();
+                }
                 await interaction.reply({
                     ...opts,
                     ephemeral: opts.ephemeral ?? false,
