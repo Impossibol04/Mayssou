@@ -27,8 +27,9 @@ module.exports = async (client, message, args) => {
                 `Anti-caps : ${s.caps ? 'oui' : 'non'} (≥ **${s.capsMinLen}** car. message, ≥ **${s.capsMinLetters}** lettres, ratio maj. ≥ **${s.capsRatio}**)`,
                 `Bloquer invites Discord : ${s.blockInvites ? 'oui' : 'non'}`,
                 `Bloquer liens (http(s), www, aperçus) + GIF en fichier : ${s.blockLinks ? `oui${s.blockGifFiles ? ' (GIF fichiers inclus)' : ' (GIF fichiers autorisés)'}` : 'non'}`,
+                `Salons ignorés par l’auto-mod : **${s.ignoreChannelIds.length}** (\`ignore list\`)`,
                 '',
-                `Configure avec \`${p}setautomod on|off\`, \`insults\`, \`spam\`, \`caps\`, \`invites\`, \`links\`, \`giffiles\` (+ on/off) — *Gérer serveur.*`,
+                `Configure : \`on|off\`, \`insults\`, \`spam\`, \`caps\`, \`invites\`, \`links\`, \`giffiles\`, \`ignore add|remove|list\` — *Gérer serveur.*`,
             ].join('\n')
         );
     }
@@ -40,6 +41,42 @@ module.exports = async (client, message, args) => {
     if (sub === 'off' || sub === 'disable') {
         mergeAutoMod(message.guild.id, { enabled: false });
         return message.reply('✅ Auto-mod **désactivée**.');
+    }
+
+    if (sub === 'ignore' || sub === 'ignorer') {
+        const act = (args[1] || '').toLowerCase();
+        const cur = getGuildConfig(message.guild.id).autoMod;
+        const base = cur && typeof cur === 'object' ? cur : {};
+        let list = Array.isArray(base.ignoreChannels) ? [...base.ignoreChannels] : [];
+        if (act === 'list' || !act) {
+            if (!list.length) return message.reply('ℹ️ Aucun salon ignoré.');
+            const lines = list
+                .map((id) => {
+                    const ch = message.guild.channels.cache.get(id);
+                    return ch ? `· ${ch}` : `· \`${id}\` *(introuvable)*`;
+                })
+                .join('\n');
+            return message.reply(`📋 **Salons ignorés (auto-mod)**\n${lines}`);
+        }
+        const ch =
+            message.mentions.channels.first() ||
+            (args[2] && message.guild.channels.cache.get(args[2])) ||
+            (args[2] && /^\d{17,20}$/.test(args[2]) ? message.guild.channels.cache.get(args[2]) : null);
+        if (act === 'add') {
+            if (!ch || !ch.isTextBased()) {
+                return message.reply(`⚠️ \`${p}setautomod ignore add #salon\` ou ID texte.`);
+            }
+            if (!list.includes(ch.id)) list.push(ch.id);
+            mergeAutoMod(message.guild.id, { ignoreChannels: list });
+            return message.reply(`✅ ${ch} ignoré par l’auto-mod.`);
+        }
+        if (act === 'remove' || act === 'del' || act === 'delete') {
+            if (!ch) return message.reply(`⚠️ \`${p}setautomod ignore remove #salon\``);
+            list = list.filter((id) => id !== ch.id);
+            mergeAutoMod(message.guild.id, { ignoreChannels: list });
+            return message.reply(`✅ ${ch} n’est plus ignoré.`);
+        }
+        return message.reply(`⚠️ \`${p}setautomod ignore add #salon | remove #salon | list\``);
     }
 
     const boolArg = (args[1] || '').toLowerCase();
@@ -81,6 +118,6 @@ module.exports = async (client, message, args) => {
     }
 
     return message.reply(
-        `⚠️ Sous-commandes : \`on\` · \`off\` · \`status\` · \`insults\` · \`spam\` · \`caps\` · \`invites\` · \`links\` · \`giffiles\` (+ on/off).`
+        `⚠️ Sous-commandes : \`on\` · \`off\` · \`status\` · \`insults\` · \`spam\` · \`caps\` · \`invites\` · \`links\` · \`giffiles\` · \`ignore\` (+ on/off ou salons).`
     );
 };

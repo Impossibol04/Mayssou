@@ -1,6 +1,7 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const { sendModLog } = require('../../utils/modlogs');
 const { addWarn } = require('../../utils/warnStore');
+const { addCase } = require('../../utils/modCasesStore');
 
 module.exports = async (client, message, args) => {
     const isOwner = message.author.id === message.guild.ownerId;
@@ -38,6 +39,12 @@ module.exports = async (client, message, args) => {
         moderatorId: message.author.id,
         at: new Date().toISOString(),
     });
+    const { number } = addCase(message.guild.id, {
+        type: 'warn',
+        targetUserId: target.id,
+        moderatorId: message.author.id,
+        reason,
+    });
 
     message.react("✅").catch(() => {});
 
@@ -46,5 +53,6 @@ module.exports = async (client, message, args) => {
         moderator: message.author,
         target: target.user,
         reason,
+        extra: [{ name: '📎 Cas', value: `\`#${number}\``, inline: true }],
     });
 };

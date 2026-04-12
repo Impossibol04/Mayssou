@@ -1,5 +1,6 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const { addNote, listNotes, deleteNote } = require('../../utils/modNotesStore');
+const theme = require('../../utils/embedTheme');
 
 module.exports = async (client, message, args) => {
     if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers))
@@ -19,7 +20,13 @@ module.exports = async (client, message, args) => {
         const text = args.slice(2).join(' ').trim();
         if (!target || !text) return message.reply('⚠️ `modnote add @user <texte>`');
         const n = addNote(message.guild.id, target.id, message.author.id, text);
-        return message.reply(`✅ Note **\`${n.id}\`** ajoutée pour ${target.tag}.`);
+        return message.reply({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(theme.SUCCESS)
+                    .setDescription(`✅ Note **\`${n.id}\`** ajoutée pour **${target.tag}**.`),
+            ],
+        });
     }
 
     if (sub === 'list') {
@@ -36,7 +43,7 @@ module.exports = async (client, message, args) => {
         const embed = new EmbedBuilder()
             .setTitle(`📋 Notes mod — ${target.tag}`)
             .setDescription(lines.join('\n\n').slice(0, 4000))
-            .setColor(0x9b59b6);
+            .setColor(theme.MOD);
         return message.channel.send({ embeds: [embed] });
     }
 
@@ -44,7 +51,13 @@ module.exports = async (client, message, args) => {
         const id = args[1];
         if (!id) return message.reply('⚠️ `modnote del <id>`');
         const ok = deleteNote(message.guild.id, id);
-        return message.reply(ok ? '🗑️ Note supprimée.' : '❌ ID introuvable sur ce serveur.');
+        return message.reply({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(ok ? theme.SUCCESS : theme.ERROR)
+                    .setDescription(ok ? '🗑️ Note supprimée.' : '❌ ID introuvable sur ce serveur.'),
+            ],
+        });
     }
 
     return message.reply('⚠️ Sous-commande inconnue.');

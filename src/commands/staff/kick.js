@@ -1,5 +1,6 @@
 const { PermissionFlagsBits } = require('discord.js');
 const { sendModLog } = require('../../utils/modlogs');
+const { addCase } = require('../../utils/modCasesStore');
 
 module.exports = async (client, message, args) => {
     if (!message.member.permissions.has(PermissionFlagsBits.KickMembers))
@@ -19,6 +20,13 @@ module.exports = async (client, message, args) => {
     await member.send(`👢 Tu as été kick du serveur **${message.guild.name}**.\n📋 Raison : ${reason}`).catch(() => {});
     await member.kick(reason);
 
+    const { number } = addCase(message.guild.id, {
+        type: 'kick',
+        targetUserId: member.id,
+        moderatorId: message.author.id,
+        reason,
+    });
+
     message.react("✅").catch(() => {});
 
     await sendModLog(client, message.guild, {
@@ -26,5 +34,6 @@ module.exports = async (client, message, args) => {
         moderator: message.author,
         target: member.user,
         reason,
+        extra: [{ name: '📎 Cas', value: `\`#${number}\``, inline: true }],
     });
 };

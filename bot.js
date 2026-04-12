@@ -22,6 +22,8 @@ const { runAutoModeration } = require('./src/utils/autoModeration');
 const { clearAfk, getAfk } = require('./src/utils/afkStore');
 const { syncXpRoles } = require('./src/utils/xpRoleSync');
 const { addClanXpFromActivity } = require('./src/utils/clanStore');
+const log = require('./src/utils/logger');
+const { schedulePendingGiveaways } = require('./src/utils/giveawayRunner');
 
 const bot = new Client({
     intents: [
@@ -136,6 +138,9 @@ bot.once("ready", () => {
         activities: [{ name: `Mange du Popcorn | /help • ${defaultPrefix()}help`, type: ActivityType.Watching }],
         status: 'online',
     });
+
+    schedulePendingGiveaways(bot);
+    log.info('Giveaways actifs reprogrammés');
 });
 
 bot.on('error', (error) => console.error('Discord client error:', error));
@@ -205,7 +210,14 @@ bot.on("messageCreate", async (message) => {
             return message.reply(`⏳ Attends encore **${remaining}s** avant de refaire \`${prefix}${realCommandName}\`.`);
         }
         // --------------------------------------------
-        
+
+        if (command.expensiveCooldown) {
+            const er = checkCooldown(`${realCommandName}:api`, message.author.id, command.expensiveCooldown);
+            if (er) {
+                return message.reply(`⏳ Cooldown **API** : encore **${er}s** avant \`${prefix}${realCommandName}\`.`);
+            }
+        }
+
         try {
             // Exécution de la commande (gère les fonctions simples ou les objets avec .run)
             if (typeof command === 'function') {
@@ -214,8 +226,9 @@ bot.on("messageCreate", async (message) => {
                 await command.run(bot, message, args);
             }
         } catch (error) {
+            log.error(`commande ${realCommandName}`, { err: error?.message || String(error), guild: message.guild?.id });
             console.error(error);
-            message.reply("❌ Une erreur est survenue dans cette commande.");
+            message.reply({ content: '❌ Une erreur est survenue dans cette commande.' }).catch(() => {});
         }
     }
 });

@@ -1038,4 +1038,80 @@ module.exports = [
             return {};
         },
     },
+    {
+        data: new SlashCommandBuilder().setName('meme').setDescription('Mème aléatoire (Reddit r/memes)'),
+        commandName: 'meme',
+        toArgs: () => [],
+    },
+    {
+        data: new SlashCommandBuilder()
+            .setName('wordle')
+            .setDescription('Wordle (5 lettres)')
+            .addStringOption((o) => o.setName('mot').setDescription('Mot ou `new`').setRequired(false)),
+        commandName: 'wordle',
+        toArgs: (i) => {
+            const m = i.options.getString('mot');
+            if (!m) return [];
+            const l = m.toLowerCase();
+            if (l === 'new' || l === 'nouveau') return ['new'];
+            return [m];
+        },
+    },
+    {
+        data: new SlashCommandBuilder()
+            .setName('pendu')
+            .setDescription('Pendu (mot mystère)')
+            .addStringOption((o) => o.setName('essai').setDescription('Lettre, mot ou `new`').setRequired(false)),
+        commandName: 'pendu',
+        toArgs: (i) => {
+            const s = i.options.getString('essai');
+            if (!s) return [];
+            const l = s.toLowerCase();
+            if (l === 'new' || l === 'nouveau') return ['new'];
+            return [s];
+        },
+    },
+    {
+        data: new SlashCommandBuilder()
+            .setName('giveaway')
+            .setDescription('Lancer un concours (réagir 🎉)')
+            .addIntegerOption((o) =>
+                o.setName('minutes').setDescription('Durée en minutes').setRequired(true).setMinValue(1).setMaxValue(10080)
+            )
+            .addIntegerOption((o) =>
+                o.setName('gagnants').setDescription('Nombre de gagnants').setRequired(true).setMinValue(1).setMaxValue(15)
+            )
+            .addStringOption((o) => o.setName('lot').setDescription('Description du lot').setRequired(true).setMaxLength(200)),
+        commandName: 'giveaway',
+        toArgs: (i) => [
+            'start',
+            String(i.options.getInteger('minutes')),
+            String(i.options.getInteger('gagnants')),
+            i.options.getString('lot', true),
+        ],
+    },
+    {
+        data: new SlashCommandBuilder()
+            .setName('case')
+            .setDescription('Cas de modération')
+            .addSubcommand((s) =>
+                s
+                    .setName('voir')
+                    .setDescription('Afficher un cas')
+                    .addIntegerOption((o) => o.setName('numero').setDescription('Numéro du cas').setRequired(true).setMinValue(1))
+            )
+            .addSubcommand((s) =>
+                s
+                    .setName('list')
+                    .setDescription('Liste des cas')
+                    .addUserOption((o) => o.setName('membre').setDescription('Filtrer par membre').setRequired(false))
+            ),
+        commandName: 'case',
+        toArgs: (i) => {
+            const sub = i.options.getSubcommand();
+            if (sub === 'voir') return [String(i.options.getInteger('numero'))];
+            const u = i.options.getUser('membre');
+            return u ? ['list', u.id] : ['list'];
+        },
+    },
 ];

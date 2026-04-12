@@ -1,5 +1,6 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const { sendModLog } = require('../../utils/modlogs');
+const { addCase } = require('../../utils/modCasesStore');
 
 module.exports = async (client, message, args) => {
     if (!message.member.permissions.has(PermissionFlagsBits.BanMembers))
@@ -32,6 +33,13 @@ module.exports = async (client, message, args) => {
     await target.send({ embeds: [banDMEmbed] }).catch(() => {});
     await message.guild.members.ban(targetId, { reason });
 
+    const { number } = addCase(message.guild.id, {
+        type: 'ban',
+        targetUserId: target.id,
+        moderatorId: message.author.id,
+        reason,
+    });
+
     message.react("✅").catch(() => {});
 
     await sendModLog(client, message.guild, {
@@ -39,5 +47,6 @@ module.exports = async (client, message, args) => {
         moderator: message.author,
         target,
         reason,
+        extra: [{ name: '📎 Cas', value: `\`#${number}\``, inline: true }],
     });
 };

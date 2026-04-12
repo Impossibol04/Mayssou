@@ -37,3 +37,4 @@ module.exports = async (client, message, args) => {
 };
 
 module.exports.cooldown = 25;
+module.exports.expensiveCooldown = 45;

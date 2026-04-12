@@ -78,6 +78,7 @@ function getSettings(guildId) {
         /** Tout lien http(s), www., aperçu embed, et/ou GIF en pièce jointe (style DraftBot) */
         blockLinks: Boolean(a.blockLinks),
         blockGifFiles: a.blockGifFiles !== false,
+        ignoreChannelIds: Array.isArray(a.ignoreChannels) ? a.ignoreChannels.map(String) : [],
     };
 }
 
@@ -223,6 +224,7 @@ async function runAutoModeration(message) {
 
     const s = getSettings(message.guild.id);
     if (!s.enabled) return null;
+    if (s.ignoreChannelIds.includes(message.channel.id)) return null;
 
     const content = message.content || '';
     const author = message.author;

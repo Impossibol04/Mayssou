@@ -8,6 +8,7 @@ const { handleWarnlistButton, handleBanlistButton } = require('../components/mod
 const { handlePollButton } = require('../components/pollInteractive');
 const { handleQuizButton } = require('../components/quizInteractive');
 const { handleTribunalButton } = require('../components/tribunalInteractive');
+const log = require('../utils/logger');
 
 async function registerSlashCommands(client) {
     const token = process.env.token;
@@ -147,6 +148,7 @@ module.exports = (bot) => {
                 await runSlashEntryAfterDefer(bot, interaction, entry);
             }
         } catch (err) {
+            log.error('slash command', { err: err?.message || String(err), cmd: interaction.commandName });
             console.error('Erreur slash:', err);
             const payload = { content: '❌ Une erreur est survenue dans cette commande.', ephemeral: true };
             try {

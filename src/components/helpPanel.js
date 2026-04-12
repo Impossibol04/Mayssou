@@ -180,6 +180,10 @@ function getCategoryPageDefs(p) {
                     L(p, 'warnlist', 'warnlist', 'Tous les warnés (**pages + boutons**) ou détail **@membre**.'),
                     L(p, 'cleanwarn', 'cleanwarn', 'Efface les warns ; **`all`** → confirmation *(owner / Gérer serveur)*.'),
                     L(p, 'modnote', 'modnote', 'Notes staff **add / list / del**.'),
+                    L(p, 'note', 'note', 'Notes membre (embed) — **add / list / del**.'),
+                    L(p, 'case', 'case', 'Cas mod **#n** · **list** · **add** (manuel). Alias **modcase**.'),
+                    L(p, 'jail', 'jail', '**setup** @rôle · **status** · @membre (prison). *Modérer / Admin setup.*'),
+                    L(p, 'unjail', 'unjail', 'Retire le **rôle prison**.'),
                 ],
             },
             {
@@ -230,6 +234,7 @@ function getCategoryPageDefs(p) {
                 lines: [
                     L(p, 'addrole', 'addrole', 'Ajoute des **rôles**.'),
                     L(p, 'removerole', 'removerole', 'Retire des **rôles**.'),
+                    L(p, 'massrole', 'massrole', '**give/remove @Rôle confirm** — masse (humains). *Admin.*'),
                 ],
             },
         ],
@@ -250,7 +255,7 @@ function getCategoryPageDefs(p) {
                 lines: [
                     L(p, 'setconfess', 'setconfess', '**#saisie #public** ou **input** / **output** / **show**.'),
                     L(p, 'setwelcome', 'setwelcome', '**join** / **leave** · **joinmessage** / **leavemessage** (`{mention}`…).'),
-                    L(p, 'setautomod', 'setautomod', 'Auto-mod : insultes, spam, caps, invites, **links** (URLs + embeds), **giffiles** · `status`. *Gérer serveur.*'),
+                    L(p, 'setautomod', 'setautomod', 'Auto-mod + **ignore** salons · `status`. *Gérer serveur.*'),
                     L(p, 'setxprole', 'setxprole', 'Rôles donnés aux **paliers XP** (`add` / `list`).'),
                     L(p, 'setmodlogs', 'setmodlogs', 'Salon **logs** modération.'),
                     L(p, 'setjoinvoice', 'setjoinvoice', 'Hub **Créer un vocal**.'),
@@ -372,6 +377,10 @@ function getCategoryPageDefs(p) {
                     L(p, 'gay', 'gay', 'Humour.'),
                     L(p, '67', 'sixseven', 'Réf. · `/sixseven`.'),
                     L(p, 'ship', 'ship', 'Compatibilité.'),
+                    L(p, 'giveaway', 'giveaway', '**start** min gagnants lot — réaction 🎉. Alias **concours**.'),
+                    L(p, 'wordle', 'wordle', 'Mot 5 lettres · **new** pour recommencer.'),
+                    L(p, 'pendu', 'pendu', 'Pendu (mot long) · **new**.'),
+                    L(p, 'meme', 'meme', 'Mème **r/memes** (cooldown API).'),
                 ],
             },
             {
@@ -379,7 +388,7 @@ function getCategoryPageDefs(p) {
                 title: 'Fun',
                 hint: 'XP.',
                 lines: [
-                    L(p, 'level', 'level', 'Niveaux **XP** (cooldown) · rôles auto via **setxprole**.'),
+                    L(p, 'level', 'level', 'Carte **XP** + barre progression + **rôles setxprole** + top 5.'),
                 ],
             },
         ],
