@@ -26,6 +26,31 @@ function getOrCreateConnection(voiceChannel, guildId) {
     });
 }
 
+async function tryAutoplayTrack(guildId, channel, data) {
+    if (!data.autoplay || !data.currentTrack?.artist) return false;
+    try {
+        const q = `${data.currentTrack.artist}`.slice(0, 60);
+        const results = await playdl.search(q, { source: { soundcloud: 'tracks' }, limit: 3 });
+        if (!results?.length) return false;
+        const pick = results.find((r) => r.url !== data.currentTrack.url) || results[0];
+        const dur = pick.durationInSec || 0;
+        data.queue.push({
+            url: pick.url,
+            title: pick.name || 'Sans titre',
+            artist: pick.user?.name || 'Inconnu',
+            duration: formatDuration(dur),
+            durationInSec: dur,
+            thumbnail: pick.thumbnail || null,
+            requestedBy: 'Autoplay',
+            isKaraoke: false,
+        });
+        return true;
+    } catch (e) {
+        console.error('[autoplay]', e.message);
+        return false;
+    }
+}
+
 async function playNext(guildId, channel) {
     const data = musicData.get(guildId);
     if (!data) return;
@@ -34,6 +59,9 @@ async function playNext(guildId, channel) {
     if (data.loop && data.currentTrack) data.queue.unshift(data.currentTrack);
 
     if (data.queue.length === 0) {
+        const autoplayed = await tryAutoplayTrack(guildId, channel, data);
+        if (autoplayed && data.queue.length > 0) return playNext(guildId, channel);
+
         data.currentTrack = null;
         const timeout = setTimeout(() => {
             const connection = getVoiceConnection(guildId);
@@ -74,4 +102,12 @@ async function playNext(guildId, channel) {
     }
 }
 
-module.exports = { musicData, voiceTimeouts, formatDuration, getOrCreateConnection, playNext, SOUNDCLOUD_ICON };
+module.exports = {
+    musicData,
+    voiceTimeouts,
+    formatDuration,
+    getOrCreateConnection,
+    playNext,
+    tryAutoplayTrack,
+    SOUNDCLOUD_ICON,
+};

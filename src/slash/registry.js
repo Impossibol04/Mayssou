@@ -22,7 +22,9 @@ module.exports = [
                         { name: '🎵 Musique', value: 'music' },
                         { name: '🎙️ Vocal', value: 'voice' },
                         { name: '🤫 Social', value: 'social' },
-                        { name: '✨ Fun', value: 'fun' }
+                        { name: '✨ Fun', value: 'fun' },
+                        { name: '🏛️ Serveur', value: 'server' },
+                        { name: '🔐 Sécurité bot', value: 'security' }
                     )),
         customExecute: async (bot, interaction) => {
             const raw = interaction.options.getString('categorie');
@@ -131,7 +133,7 @@ module.exports = [
         toArgs: (i) => [i.options.getUser('utilisateur').id],
     },
     {
-        data: new SlashCommandBuilder().setName('banlist').setDescription('Bannir plusieurs membres en une seule commande (max 25)')
+        data: new SlashCommandBuilder().setName('banmass').setDescription('Ban massif (max 5 cibles / slash, confirmation)')
             .addUserOption((o) => o.setName('cible1').setDescription('1er membre').setRequired(true))
             .addUserOption((o) => o.setName('cible2').setDescription('2ème membre').setRequired(false))
             .addUserOption((o) => o.setName('cible3').setDescription('3ème membre').setRequired(false))
@@ -139,24 +141,18 @@ module.exports = [
             .addUserOption((o) => o.setName('cible5').setDescription('5ème membre').setRequired(false))
             .addStringOption((o) => o.setName('raison').setDescription('Raison du ban').setRequired(false)),
         customExecute: async (bot, interaction) => {
-            // Récupère toutes les cibles non nulles
-            const cibleKeys = ['cible1','cible2','cible3','cible4','cible5'];
-            const users = cibleKeys
-                .map(k => interaction.options.getUser(k))
-                .filter(Boolean);
+            const cibleKeys = ['cible1', 'cible2', 'cible3', 'cible4', 'cible5'];
+            const users = cibleKeys.map((k) => interaction.options.getUser(k)).filter(Boolean);
 
             const reason = interaction.options.getString('raison') || 'Mass Ban';
 
             if (users.length === 0)
                 return interaction.reply({ content: '❌ Aucun utilisateur valide.', ephemeral: true });
 
-            // Construit des args synthétiques compatibles avec le handler préfixe :
-            // [ID1, ID2, ..., ...raison]
-            const fakeArgs = [...users.map(u => u.id), ...reason.split(' ')];
+            const fakeArgs = [...users.map((u) => u.id), ...reason.split(' ')];
 
-            // Imite message.mentions.users pour que le handler puisse parser les IDs
             const { Collection } = require('discord.js');
-            const mentionUsers = new Collection(users.map(u => [u.id, u]));
+            const mentionUsers = new Collection(users.map((u) => [u.id, u]));
 
             const { createSlashMessageAdapter } = require('../utils/slashAdapter');
             const adapter = createSlashMessageAdapter(interaction, {
@@ -164,9 +160,14 @@ module.exports = [
                 mentionUsers,
             });
 
-            const cmd = bot.commands.get('banlist');
+            const cmd = bot.commands.get('banmass');
             if (cmd) await cmd(bot, adapter, fakeArgs);
         },
+    },
+    {
+        data: new SlashCommandBuilder().setName('banlist').setDescription('Liste des bannissements (aperçu)'),
+        commandName: 'banlist',
+        toArgs: () => [],
     },
     {
         data: new SlashCommandBuilder().setName('timeout').setDescription('Exclure temporairement (timeout)')
@@ -627,7 +628,209 @@ module.exports = [
         commandName: 'summarize',
         toArgs: (i) => {
             const t = i.options.getString('texte');
-            return t ? t.split(/\s+/) : [];
+            return t ? [t] : [];
         },
+    },
+    {
+        data: new SlashCommandBuilder().setName('warnlist').setDescription('Liste des warns enregistrés')
+            .addUserOption((o) => o.setName('membre').setDescription('Membre').setRequired(true)),
+        commandName: 'warnlist',
+        toArgs: (i) => [i.options.getUser('membre').id],
+        enrichMentions: async (i) => {
+            const u = i.options.getUser('membre');
+            return { mentionUsers: new Collection([[u.id, u]]) };
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('modnote').setDescription('Notes modération')
+            .addStringOption((o) =>
+                o.setName('action').setDescription('Action').setRequired(true).addChoices(
+                    { name: 'Ajouter', value: 'add' },
+                    { name: 'Lister', value: 'list' },
+                    { name: 'Supprimer', value: 'del' }
+                ))
+            .addUserOption((o) => o.setName('membre').setDescription('Membre (add/list)').setRequired(false))
+            .addStringOption((o) => o.setName('texte').setDescription('Texte (add)').setRequired(false).setMaxLength(900))
+            .addStringOption((o) => o.setName('id_note').setDescription('ID note (del)').setRequired(false)),
+        commandName: 'modnote',
+        toArgs: (i) => {
+            const a = i.options.getString('action');
+            const u = i.options.getUser('membre');
+            const t = i.options.getString('texte');
+            const id = i.options.getString('id_note');
+            if (a === 'add') return u && t ? ['add', u.id, t] : ['add'];
+            if (a === 'list') return u ? ['list', u.id] : ['list'];
+            return id ? ['del', id] : ['del'];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('slowmode').setDescription('Slowmode du salon (secondes)')
+            .addIntegerOption((o) => o.setName('secondes').setDescription('0–21600').setRequired(true).setMinValue(0).setMaxValue(21600)),
+        commandName: 'slowmode',
+        toArgs: (i) => [String(i.options.getInteger('secondes'))],
+    },
+    {
+        data: new SlashCommandBuilder().setName('softban').setDescription('Softban (purge puis déban)')
+            .addUserOption((o) => o.setName('membre').setDescription('Membre').setRequired(true))
+            .addStringOption((o) => o.setName('raison').setDescription('Raison').setRequired(false)),
+        commandName: 'softban',
+        toArgs: (i) => {
+            const u = i.options.getUser('membre');
+            const r = i.options.getString('raison') || '';
+            return [u.id, ...r.split(/\s+/).filter(Boolean)];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('untimeout').setDescription('Retirer le timeout (alias unmute)')
+            .addUserOption((o) => o.setName('membre').setDescription('Membre').setRequired(true)),
+        commandName: 'untimeout',
+        toArgs: (i) => [i.options.getUser('membre').id],
+    },
+    {
+        data: new SlashCommandBuilder().setName('purgeuser').setDescription('Supprimer les messages d’un membre (récent)')
+            .addUserOption((o) => o.setName('membre').setDescription('Membre').setRequired(true))
+            .addIntegerOption((o) => o.setName('max').setDescription('Max à tenter (défaut 50)').setRequired(false).setMinValue(1).setMaxValue(500)),
+        commandName: 'purgeuser',
+        toArgs: (i) => {
+            const u = i.options.getUser('membre');
+            const m = i.options.getInteger('max');
+            return m ? [u.id, String(m)] : [u.id];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('report').setDescription('Signaler au staff (salon modlogs)')
+            .addStringOption((o) => o.setName('details').setDescription('Explication').setRequired(true).setMaxLength(900)),
+        commandName: 'report',
+        toArgs: (i) => [i.options.getString('details')],
+    },
+    {
+        data: new SlashCommandBuilder().setName('audit').setDescription('Aperçu du journal d’audit')
+            .addIntegerOption((o) => o.setName('nombre').setDescription('5–25').setRequired(false).setMinValue(5).setMaxValue(25)),
+        commandName: 'audit',
+        toArgs: (i) => {
+            const n = i.options.getInteger('nombre');
+            return n ? [String(n)] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('roleinfo').setDescription('Infos sur un rôle')
+            .addRoleOption((o) => o.setName('role').setDescription('Rôle').setRequired(false)),
+        commandName: 'roleinfo',
+        toArgs: (i) => {
+            const r = i.options.getRole('role');
+            return r ? [r.id] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('channelinfo').setDescription('Infos sur un salon')
+            .addChannelOption((o) => o.setName('salon').setDescription('Salon').setRequired(false)),
+        commandName: 'channelinfo',
+        toArgs: (i) => {
+            const c = i.options.getChannel('salon');
+            return c ? [c.id] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('emojiinfo').setDescription('Infos sur un emoji du serveur')
+            .addStringOption((o) => o.setName('emoji').setDescription('Emoji ou nom').setRequired(true)),
+        commandName: 'emojiinfo',
+        toArgs: (i) => [i.options.getString('emoji')],
+    },
+    {
+        data: new SlashCommandBuilder().setName('afk').setDescription('Mode AFK')
+            .addStringOption((o) => o.setName('raison').setDescription('Message (optionnel)').setRequired(false).setMaxLength(200)),
+        commandName: 'afk',
+        toArgs: (i) => {
+            const r = i.options.getString('raison');
+            return r ? [r] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('skipto').setDescription('Sauter à une position dans la file')
+            .addIntegerOption((o) => o.setName('position').setDescription('Index dans la file').setRequired(true).setMinValue(1).setMaxValue(100)),
+        commandName: 'skipto',
+        toArgs: (i) => [String(i.options.getInteger('position'))],
+    },
+    {
+        data: new SlashCommandBuilder().setName('replay').setDescription('Rejouer la piste depuis le début'),
+        commandName: 'replay',
+        toArgs: () => [],
+    },
+    {
+        data: new SlashCommandBuilder().setName('autoplay').setDescription('Autoplay SoundCloud on/off')
+            .addStringOption((o) =>
+                o.setName('etat').setDescription('État').setRequired(false).addChoices(
+                    { name: 'Activer', value: 'on' },
+                    { name: 'Désactiver', value: 'off' }
+                )),
+        commandName: 'autoplay',
+        toArgs: (i) => {
+            const e = i.options.getString('etat');
+            return e ? [e] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('level').setDescription('Niveau / XP')
+            .addUserOption((o) => o.setName('membre').setDescription('Membre').setRequired(false)),
+        commandName: 'level',
+        toArgs: () => [],
+        enrichMentions: async (i) => {
+            const u = i.options.getUser('membre');
+            if (!u) return {};
+            return { mentionUsers: new Collection([[u.id, u]]) };
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('rep').setDescription('Donner ou voir des rep')
+            .addUserOption((o) => o.setName('membre').setDescription('+1 rep (vide = ton total)').setRequired(false)),
+        commandName: 'rep',
+        toArgs: () => [],
+        enrichMentions: async (i) => {
+            const u = i.options.getUser('membre');
+            if (!u) return {};
+            return { mentionUsers: new Collection([[u.id, u]]) };
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('ship').setDescription('Compatibilité fun')
+            .addUserOption((o) => o.setName('a').setDescription('Premier').setRequired(false))
+            .addUserOption((o) => o.setName('b').setDescription('Deuxième').setRequired(false)),
+        commandName: 'ship',
+        toArgs: () => [],
+        enrichMentions: async (i) => {
+            const a = i.options.getUser('a');
+            const b = i.options.getUser('b');
+            const users = new Collection();
+            if (a) users.set(a.id, a);
+            if (b) users.set(b.id, b);
+            return { mentionUsers: users };
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('debug').setDescription('Infos debug (propriétaire bot)'),
+        commandName: 'debug',
+        toArgs: () => [],
+    },
+    {
+        data: new SlashCommandBuilder().setName('guildblacklist').setDescription('Blacklist serveurs (owner bot)')
+            .addStringOption((o) =>
+                o.setName('action').setDescription('Action').setRequired(false).addChoices(
+                    { name: 'Lister', value: 'list' },
+                    { name: 'Ajouter', value: 'add' },
+                    { name: 'Retirer', value: 'remove' }
+                ))
+            .addStringOption((o) => o.setName('id_serveur').setDescription('ID Discord du serveur').setRequired(false)),
+        commandName: 'guildblacklist',
+        toArgs: (i) => {
+            const a = i.options.getString('action') || 'list';
+            const id = i.options.getString('id_serveur');
+            return id ? [a, id] : [a];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('settranslate').setDescription('Activer/désactiver translate (Manage Server)')
+            .addBooleanOption((o) => o.setName('actif').setDescription('true = translate autorisé').setRequired(true)),
+        commandName: 'settranslate',
+        toArgs: (i) => [i.options.getBoolean('actif') ? 'on' : 'off'],
     },
 ];

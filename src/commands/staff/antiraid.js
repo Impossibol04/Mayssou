@@ -85,7 +85,18 @@ module.exports = async (client, message, args) => {
         return message.reply(`✅ Durée du mode raid : **${n}s**.`);
     }
 
+    if (sub === 'exempt') {
+        const role = message.mentions.roles.first();
+        if (!role && ['off', 'none', 'reset'].includes((args[1] || '').toLowerCase())) {
+            saveAntiraidSettings(message.guild.id, { exemptRoleId: null });
+            return message.reply('✅ Rôle exempt antiraid **désactivé**.');
+        }
+        if (!role) return message.reply('⚠️ `antiraid exempt @Rôle` ou `antiraid exempt off`.');
+        saveAntiraidSettings(message.guild.id, { exemptRoleId: role.id });
+        return message.reply(`✅ Les membres avec ${role} **ne comptent pas** dans le pic d’arrivées.`);
+    }
+
     return message.reply(
-        '⚠️ Sous-commandes : `status`, `on`, `off`, `threshold`, `window`, `verify`, `strict`, `agedays`, `raidlen`.'
+        '⚠️ Sous-commandes : `status`, `on`, `off`, `threshold`, `window`, `verify`, `strict`, `agedays`, `raidlen`, `exempt`.'
     );
 };

@@ -17,6 +17,8 @@ module.exports = (bot) => {
         const settings = getAntiraidSettings(guild.id);
         if (!settings.enabled) return;
 
+        if (settings.exemptRoleId && member.roles.cache.has(settings.exemptRoleId)) return;
+
         const windowMs = settings.windowSec * 1000;
         pruneJoins(guild.id, windowMs);
         const count = recordJoin(guild.id);

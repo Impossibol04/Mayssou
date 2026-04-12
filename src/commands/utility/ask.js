@@ -1,6 +1,10 @@
 const { chatCompletion } = require('../../utils/openaiChat');
+const { canUseAICommands } = require('../../utils/commandGuards');
 
 module.exports = async (client, message, args) => {
+    if (!canUseAICommands(message.member))
+        return message.reply('❌ `ask` est réservé au staff (**Modérer les membres**).');
+
     const q = args.join(' ').trim();
     if (!q) return message.reply('⚠️ Utilisation : `ask <ta question>`');
     if (q.length > 1500) return message.reply('❌ Question trop longue.');
@@ -20,3 +24,5 @@ module.exports = async (client, message, args) => {
     const text = out.text.length > 1900 ? `${out.text.slice(0, 1897)}…` : out.text;
     await wait.edit(text);
 };
+
+module.exports.cooldown = 20;

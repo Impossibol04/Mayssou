@@ -1,6 +1,10 @@
 const { chatCompletion } = require('../../utils/openaiChat');
+const { canUseAICommands } = require('../../utils/commandGuards');
 
 module.exports = async (client, message, args) => {
+    if (!canUseAICommands(message.member))
+        return message.reply('❌ `summarize` est réservé au staff (**Modérer les membres**).');
+
     let text = args.join(' ').trim();
 
     if (!text && message.reference?.messageId) {
@@ -31,3 +35,5 @@ module.exports = async (client, message, args) => {
     const t = out.text.length > 1900 ? `${out.text.slice(0, 1897)}…` : out.text;
     await wait.edit(t);
 };
+
+module.exports.cooldown = 25;

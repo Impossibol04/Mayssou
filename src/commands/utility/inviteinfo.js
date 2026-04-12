@@ -1,4 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
+const { canViewInviteIntel } = require('../../utils/commandGuards');
 
 function extractCode(raw) {
     if (!raw) return null;
@@ -10,6 +11,9 @@ function extractCode(raw) {
 }
 
 module.exports = async (client, message, args) => {
+    if (!canViewInviteIntel(message.member))
+        return message.reply('❌ `inviteinfo` nécessite **Modérer les membres**.');
+
     const code = extractCode(args[0] || '');
     if (!code) return message.reply('⚠️ Utilisation : `inviteinfo <code>` ou `inviteinfo https://discord.gg/abc`');
 

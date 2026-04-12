@@ -27,6 +27,9 @@ async function libreTranslate(text, target, source = 'auto') {
 }
 
 module.exports = async (client, message, args) => {
+    if (getGuildConfig(message.guild.id).disableTranslate === true)
+        return message.reply('❌ La traduction automatique est **désactivée** sur ce serveur.');
+
     const loc = (getGuildConfig(message.guild.id).locale || 'fr').toLowerCase();
     let target = loc === 'en' ? 'en' : 'fr';
     let text;

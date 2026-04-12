@@ -40,6 +40,14 @@ db.exec(`
         duration INTEGER DEFAULT 0,
         PRIMARY KEY (guildId, userId)
     );
+
+    CREATE TABLE IF NOT EXISTS xp_user (
+        guildId TEXT NOT NULL,
+        userId TEXT NOT NULL,
+        xp INTEGER NOT NULL DEFAULT 0,
+        lastXpAt INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (guildId, userId)
+    );
 `);
 
 // Nettoyage automatique des entrées > 30 jours au démarrage
@@ -175,11 +183,52 @@ function getTopVoiceChannels(guildId, userId) {
     `).all(guildId, userId, since);
 }
 
+const XP_COOLDOWN_MS = 60_000;
+const XP_MIN = 5;
+const XP_MAX = 15;
+
+/** Niveau = floor(sqrt(xp / 100)) — total XP pour atteindre le niveau L : 100 * L² */
+function levelFromXp(xp) {
+    return Math.floor(Math.sqrt(xp / 100));
+}
+
+function xpTotalForLevel(level) {
+    return 100 * level * level;
+}
+
+function addXpMessage(guildId, userId) {
+    const now = Date.now();
+    const row = db.prepare('SELECT xp, lastXpAt FROM xp_user WHERE guildId = ? AND userId = ?').get(guildId, userId);
+    if (row && now - row.lastXpAt < XP_COOLDOWN_MS) return null;
+    const gain = XP_MIN + Math.floor(Math.random() * (XP_MAX - XP_MIN + 1));
+    db.prepare(`
+        INSERT INTO xp_user (guildId, userId, xp, lastXpAt) VALUES (?, ?, ?, ?)
+        ON CONFLICT(guildId, userId) DO UPDATE SET
+            xp = xp + excluded.xp,
+            lastXpAt = excluded.lastXpAt
+    `).run(guildId, userId, gain, now);
+    const r = db.prepare('SELECT xp FROM xp_user WHERE guildId = ? AND userId = ?').get(guildId, userId);
+    return { xp: r.xp, gain, level: levelFromXp(r.xp) };
+}
+
+function getXpUser(guildId, userId) {
+    const row = db.prepare('SELECT xp FROM xp_user WHERE guildId = ? AND userId = ?').get(guildId, userId);
+    const xp = row?.xp ?? 0;
+    const lv = levelFromXp(xp);
+    const nextTotal = xpTotalForLevel(lv + 1);
+    return { xp, level: lv, nextLevelAt: nextTotal };
+}
+
+function getXpLeaderboard(guildId, limit = 10) {
+    return db.prepare('SELECT userId, xp FROM xp_user WHERE guildId = ? ORDER BY xp DESC LIMIT ?').all(guildId, limit);
+}
+
 module.exports = {
     addMessage, addVoice,
     getMessageStats, getVoiceStats,
     getMessageTotal, getVoiceTotal,
     getMessageRank, getVoiceRank,
     getMessageLeaderboard, getVoiceLeaderboard,
-    getTopMessageChannels, getTopVoiceChannels
+    getTopMessageChannels, getTopVoiceChannels,
+    addXpMessage, getXpUser, getXpLeaderboard, levelFromXp, xpTotalForLevel,
 };

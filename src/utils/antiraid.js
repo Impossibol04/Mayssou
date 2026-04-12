@@ -16,6 +16,7 @@ function defaultSettings() {
         strictNewAccounts: false,
         newAccountMaxAgeDays: 7,
         raidDurationSec: 600,
+        exemptRoleId: null,
     };
 }
 

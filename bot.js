@@ -17,19 +17,7 @@ const config = {
 const path = require('path');
 const { addMessage } = require('./src/utils/statsDB');
 const { checkCooldown } = require('./src/utils/cooldown');
-const { getGuildConfig } = require('./src/utils/guildConfig');
-
-function defaultPrefix() {
-    return (process.env.prefix || '+').trim() || '+';
-}
-
-function resolvePrefix(guild) {
-    const def = defaultPrefix();
-    if (!guild) return def;
-    const p = getGuildConfig(guild.id).prefix;
-    if (typeof p === 'string' && p.length >= 1 && p.length <= 8 && !/\s/.test(p)) return p;
-    return def;
-}
+const { defaultPrefix, resolvePrefix } = require('./src/utils/prefix');
 
 const bot = new Client({
     intents: [
@@ -122,6 +110,12 @@ bot.once("ready", () => {
     initSoundCloud();
     setInterval(initSoundCloud, 60 * 60 * 1000);
 
+    const { listIds } = require('./src/utils/guildBlacklist');
+    for (const gid of listIds()) {
+        const g = bot.guilds.cache.get(gid);
+        if (g) g.leave().catch(() => {});
+    }
+
     console.log(`
   ███╗   ███╗ █████╗ ██╗   ██╗███████╗███████╗ ██████╗ ██╗   ██╗
   ████╗ ████║██╔══██╗╚██╗ ██╔╝██╔════╝██╔════╝██╔═══██╗██║   ██║
@@ -187,5 +181,10 @@ bot.on("messageCreate", async (message) => {
         }
     }
 });
+
+if (!config.token) {
+    console.error('❌ Variable d’environnement **token** manquante. Arrêt.');
+    process.exit(1);
+}
 
 bot.login(config.token);

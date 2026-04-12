@@ -91,6 +91,7 @@ module.exports = async (client, message, args) => {
             stopped: false,
             volume: 100,
             suppressIdleAdvance: false,
+            autoplay: false,
         });
         data = musicData.get(message.guild.id);
 
