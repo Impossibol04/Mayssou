@@ -269,7 +269,7 @@ function buildCategoryEmbeds(key, botIconURL) {
             const e3 = section('Web & IA', [
                 L(p, 'translate', 'translate', 'Traduction (service externe) — peut être coupé avec `settranslate`.'),
                 L(p, 'weather', null, 'Météo par **ville** (API).'),
-                L(p, 'inviteinfo', 'inviteinfo', 'Métadonnées d’une **invitation** Discord. *Modérer les membres.*'),
+                L(p, 'inviteinfo', 'inviteinfo', '**Stats** des invitations du serveur (nombre, uses, top créateurs, vanity). *Gérer le serveur.*'),
                 L(p, 'ask', null, 'Question à l’IA. *Staff + variable `OPENAI_API_KEY`.*'),
                 L(p, 'summarize', null, 'Résumé de texte. *Idem.*'),
             ]);
@@ -283,7 +283,6 @@ function buildCategoryEmbeds(key, botIconURL) {
             const h = hero('🎵', 'Musique', 'Lecture **SoundCloud** — tu dois être dans le **même vocal** que le bot pour piloter.');
             const e1 = section('Lecture & connexion', [
                 L(p, 'play', 'play', 'Recherche et joue un titre. **`-k`** ou option slash *karaoké* pour instrumental.'),
-                L(p, 'join', 'join', 'Le bot **rejoint ton vocal** sans lancer de piste (prépare la session).'),
                 L(p, 'leave', 'leave', 'Quitte le vocal et **vide** la session musique du serveur.'),
                 L(p, 'stop', 'stop', 'Arrête la lecture et vide la file.'),
                 L(p, 'pause', 'pause', 'Pause / reprise selon l’état du lecteur.'),
@@ -311,6 +310,7 @@ function buildCategoryEmbeds(key, botIconURL) {
                 '**Panneau propriétaire** — message (salon du vocal ou **MP**) avec boutons : **renommer**, **limite**, **exclure**, **bloquer**, préréglages de places, **fermer le panneau**.',
             ]);
             const e2 = section('Commandes', [
+                L(p, 'join', 'join', 'Fait **rejoindre le bot** ton salon vocal pour la musique (sans lancer de piste).'),
                 L(p, 'voicename', 'voicename', 'Renomme **ton** vocal temporaire (préfixe 🔊 géré par le bot).'),
                 L(p, 'voicelimit', 'voicelimit', 'Définit la **limite** (0–99) + message avec **boutons** rapides.'),
                 L(p, 'tts', 'tts', 'Lit un **texte** à voix haute dans le vocal où tu es.'),

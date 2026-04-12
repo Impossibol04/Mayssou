@@ -24,9 +24,21 @@ function canViewInviteIntel(member) {
     return member?.permissions?.has(PermissionFlagsBits.ModerateMembers) === true;
 }
 
+/** Liste des invitations du serveur (API Discord : Gérer le serveur). */
+function canListGuildInvites(member) {
+    return member?.permissions?.has(PermissionFlagsBits.ManageGuild) === true;
+}
+
 function isBotOwner(userId) {
     const owner = getOwnerIdFromEnv();
     return !!owner && String(userId) === owner;
 }
 
-module.exports = { canUseAICommands, canViewInviteIntel, isBotOwner, normalizeOwnerId, getOwnerIdFromEnv };
+module.exports = {
+    canUseAICommands,
+    canViewInviteIntel,
+    canListGuildInvites,
+    isBotOwner,
+    normalizeOwnerId,
+    getOwnerIdFromEnv,
+};

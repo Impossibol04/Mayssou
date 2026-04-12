@@ -526,10 +526,9 @@ module.exports = [
         },
     },
     {
-        data: new SlashCommandBuilder().setName('inviteinfo').setDescription('Infos sur une invitation')
-            .addStringOption((o) => o.setName('code').setDescription('Code ou lien discord.gg').setRequired(true)),
+        data: new SlashCommandBuilder().setName('inviteinfo').setDescription('Statistiques des invitations du serveur'),
         commandName: 'inviteinfo',
-        toArgs: (i) => [i.options.getString('code')],
+        toArgs: () => [],
     },
     {
         data: new SlashCommandBuilder().setName('translate').setDescription('Traduire du texte')

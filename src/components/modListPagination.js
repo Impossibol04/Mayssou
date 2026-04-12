@@ -10,6 +10,9 @@ const { getGuildWarnSummary, getWarns } = require('../utils/warnStore');
 const PREFIX_WL = 'mayssou:wl:';
 const PREFIX_BL = 'mayssou:bl:';
 
+/** Bouton central désactivé (affichage page) — ne reçoit pas de clic. */
+const NAV_PAGE_STUB = 'mayssou:nav:page';
+
 const USERS_PER_PAGE = 6;
 const WARNS_PER_PAGE = 4;
 const BANS_PER_PAGE = 8;
@@ -17,6 +20,9 @@ const BANS_PER_PAGE = 8;
 /** @type {Map<string, { list: import('discord.js').GuildBan[], t: number }>} */
 const banCache = new Map();
 const BAN_CACHE_MS = 45_000;
+
+const COLOR_WARN = 0xf1c40f;
+const COLOR_BAN = 0xe74c3c;
 
 function wlId(guildId, mode, userIdOrX, page) {
     return `${PREFIX_WL}${guildId}:${mode}:${userIdOrX}:${page}`;
@@ -65,32 +71,39 @@ async function getCachedBanList(guild) {
     return list;
 }
 
-function navRow(ids, disablePrev, disableNext) {
+function navRow(ids, disablePrev, disableNext, pageLabel) {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(ids.prev)
-            .setLabel('Précédent')
+            .setLabel('Page préc.')
             .setEmoji('◀')
-            .setStyle(ButtonStyle.Secondary)
+            .setStyle(ButtonStyle.Primary)
             .setDisabled(disablePrev),
         new ButtonBuilder()
-            .setCustomId(ids.next)
-            .setLabel('Suivant')
-            .setEmoji('▶')
+            .setCustomId(NAV_PAGE_STUB)
+            .setLabel(pageLabel.slice(0, 80))
             .setStyle(ButtonStyle.Secondary)
+            .setDisabled(true),
+        new ButtonBuilder()
+            .setCustomId(ids.next)
+            .setLabel('Page suiv.')
+            .setEmoji('▶')
+            .setStyle(ButtonStyle.Primary)
             .setDisabled(disableNext)
     );
 }
 
 async function buildWarnOverviewEmbed(client, guildId, page) {
+    const guild = await client.guilds.fetch(guildId).catch(() => null);
     const summary = getGuildWarnSummary(guildId);
     if (!summary.length) {
         return {
             embeds: [
                 new EmbedBuilder()
+                    .setColor(COLOR_WARN)
                     .setTitle('⚠️ Warns — vue globale')
-                    .setDescription('Aucun warn enregistré sur ce serveur.')
-                    .setColor(0xf1c40f),
+                    .setDescription('*Aucun warn enregistré sur ce serveur.*')
+                    .setTimestamp(),
             ],
             components: [],
         };
@@ -100,27 +113,36 @@ async function buildWarnOverviewEmbed(client, guildId, page) {
     const p = Math.min(Math.max(0, page), totalPages - 1);
     const slice = summary.slice(p * USERS_PER_PAGE, (p + 1) * USERS_PER_PAGE);
 
-    const lines = await Promise.all(
-        slice.map(async (row) => {
-            const u = await client.users.fetch(row.userId).catch(() => null);
-            const tag = u ? u.tag : row.userId;
-            return `**${tag}** — \`${row.userId}\` — **${row.count}** warn(s)`;
-        })
-    );
-
     const embed = new EmbedBuilder()
-        .setTitle('⚠️ Warns — tous les membres')
-        .setDescription(lines.join('\n').slice(0, 4000))
-        .setColor(0xf1c40f)
-        .setFooter({ text: `Page ${p + 1}/${totalPages} • ${summary.length} membre(s) • Boutons : navigation` })
-        .setTimestamp();
+        .setColor(COLOR_WARN)
+        .setAuthor({
+            name: 'Liste des warns',
+            iconURL: guild?.iconURL({ size: 64 }) || undefined,
+        })
+        .setTitle('⚠️ Membres avertis')
+        .setDescription(
+            `**${summary.length}** membre(s) avec au moins un warn · page **${p + 1}**/**${totalPages}**`
+        );
+    if (totalPages > 1) embed.setFooter({ text: '◀ ▶ pour naviguer · Données du bot' });
+    embed.setTimestamp();
+
+    for (const row of slice) {
+        const u = await client.users.fetch(row.userId).catch(() => null);
+        const tag = u ? u.tag : 'Utilisateur inconnu';
+        embed.addFields({
+            name: `${tag}`,
+            value: `ID \`${row.userId}\`\n**${row.count}** warn(s)`,
+            inline: true,
+        });
+    }
 
     const prev = wlId(guildId, 'a', 'x', Math.max(0, p - 1));
     const next = wlId(guildId, 'a', 'x', Math.min(totalPages - 1, p + 1));
+    const pageLabel = `📄 ${p + 1} / ${totalPages}`;
 
     return {
         embeds: [embed],
-        components: totalPages > 1 ? [navRow({ prev, next }, p === 0, p >= totalPages - 1)] : [],
+        components: totalPages > 1 ? [navRow({ prev, next }, p === 0, p >= totalPages - 1, pageLabel)] : [],
     };
 }
 
@@ -128,14 +150,17 @@ async function buildWarnUserEmbed(client, guildId, userId, page) {
     const warns = getWarns(guildId, userId);
     const u = await client.users.fetch(userId).catch(() => null);
     const tag = u ? u.tag : userId;
+    const guild = await client.guilds.fetch(guildId).catch(() => null);
 
     if (!warns.length) {
         return {
             embeds: [
                 new EmbedBuilder()
+                    .setColor(COLOR_WARN)
                     .setTitle(`⚠️ Warns — ${tag}`)
-                    .setDescription('Aucun warn enregistré.')
-                    .setColor(0xf1c40f),
+                    .setDescription('*Aucun warn enregistré pour ce membre.*')
+                    .setThumbnail(u?.displayAvatarURL({ size: 128 }) || null)
+                    .setTimestamp(),
             ],
             components: [],
         };
@@ -145,25 +170,37 @@ async function buildWarnUserEmbed(client, guildId, userId, page) {
     const p = Math.min(Math.max(0, page), totalPages - 1);
     const slice = warns.slice(p * WARNS_PER_PAGE, (p + 1) * WARNS_PER_PAGE);
 
-    const lines = slice.map((w, idx) => {
+    const embed = new EmbedBuilder()
+        .setColor(COLOR_WARN)
+        .setAuthor({
+            name: 'Historique des warns',
+            iconURL: guild?.iconURL({ size: 64 }) || undefined,
+        })
+        .setTitle(`⚠️ ${tag}`)
+        .setDescription(`**${warns.length}** warn(s) · page **${p + 1}**/**${totalPages}**`)
+        .setThumbnail(u?.displayAvatarURL({ size: 256 }) || null);
+
+    const footerUser =
+        totalPages > 1 ? `ID ${userId} · ◀ ▶ pour naviguer` : `ID ${userId}`;
+    embed.setFooter({ text: footerUser }).setTimestamp();
+
+    slice.forEach((w, idx) => {
         const globalIndex = p * WARNS_PER_PAGE + idx + 1;
         const when = w.at ? `<t:${Math.floor(new Date(w.at).getTime() / 1000)}:f>` : '—';
-        return `**${globalIndex}.** ${when}\n${(w.reason || '—').slice(0, 350)}`;
+        embed.addFields({
+            name: `#${globalIndex} · ${when}`,
+            value: (w.reason || '*Sans raison*').slice(0, 1024),
+            inline: false,
+        });
     });
-
-    const embed = new EmbedBuilder()
-        .setTitle(`⚠️ Warns — ${tag}`)
-        .setDescription(lines.join('\n\n').slice(0, 4000))
-        .setColor(0xf1c40f)
-        .setFooter({ text: `Page ${p + 1}/${totalPages} • ${warns.length} warn(s)` })
-        .setTimestamp();
 
     const prev = wlId(guildId, 'u', userId, Math.max(0, p - 1));
     const next = wlId(guildId, 'u', userId, Math.min(totalPages - 1, p + 1));
+    const pageLabel = `📄 ${p + 1} / ${totalPages}`;
 
     return {
         embeds: [embed],
-        components: totalPages > 1 ? [navRow({ prev, next }, p === 0, p >= totalPages - 1)] : [],
+        components: totalPages > 1 ? [navRow({ prev, next }, p === 0, p >= totalPages - 1, pageLabel)] : [],
     };
 }
 
@@ -173,9 +210,11 @@ async function buildBanlistEmbed(client, guild, page) {
         return {
             embeds: [
                 new EmbedBuilder()
-                    .setTitle(`📋 Bannissements — ${guild.name}`)
-                    .setDescription('Aucun ban.')
-                    .setColor(0xe74c3c),
+                    .setColor(COLOR_BAN)
+                    .setAuthor({ name: guild.name, iconURL: guild.iconURL({ size: 64 }) || undefined })
+                    .setTitle('📋 Bannissements')
+                    .setDescription('*Aucun membre banni.*')
+                    .setTimestamp(),
             ],
             components: [],
         };
@@ -185,30 +224,40 @@ async function buildBanlistEmbed(client, guild, page) {
     const p = Math.min(Math.max(0, page), totalPages - 1);
     const slice = list.slice(p * BANS_PER_PAGE, (p + 1) * BANS_PER_PAGE);
 
-    const lines = slice.map((b, idx) => {
-        const n = p * BANS_PER_PAGE + idx + 1;
-        const u = b.user;
-        return `**${n}.** ${u.tag} (\`${u.id}\`)\n└ ${(b.reason || '—').slice(0, 120)}`;
-    });
-
     const embed = new EmbedBuilder()
-        .setTitle(`📋 Bannissements — ${guild.name}`)
-        .setDescription(lines.join('\n\n').slice(0, 4000))
-        .setColor(0xe74c3c)
-        .setFooter({ text: `Page ${p + 1}/${totalPages} • ${list.length} ban(s) • Cache ~45s` })
-        .setTimestamp();
+        .setColor(COLOR_BAN)
+        .setAuthor({ name: guild.name, iconURL: guild.iconURL({ size: 64 }) || undefined })
+        .setTitle('📋 Liste des bannissements')
+        .setDescription(
+            `**${list.length}** ban(s) au total · page **${p + 1}**/**${totalPages}** · cache ~45s`
+        )
+        .setThumbnail(guild.iconURL({ size: 256 }) || null);
+    if (totalPages > 1) embed.setFooter({ text: 'Utilise ◀ ▶ pour changer de page' });
+    embed.setTimestamp();
+
+    slice.forEach((b, idx) => {
+        const n = p * BANS_PER_PAGE + idx + 1;
+        const user = b.user;
+        embed.addFields({
+            name: `${n}. ${user.tag}`,
+            value: `\`${user.id}\`\n${(b.reason || '*Aucune raison*').slice(0, 900)}`,
+            inline: false,
+        });
+    });
 
     const gid = guild.id;
     const prev = blId(gid, Math.max(0, p - 1));
     const next = blId(gid, Math.min(totalPages - 1, p + 1));
+    const pageLabel = `📄 ${p + 1} / ${totalPages}`;
 
     return {
         embeds: [embed],
-        components: totalPages > 1 ? [navRow({ prev, next }, p === 0, p >= totalPages - 1)] : [],
+        components: totalPages > 1 ? [navRow({ prev, next }, p === 0, p >= totalPages - 1, pageLabel)] : [],
     };
 }
 
 async function handleWarnlistButton(interaction) {
+    if (interaction.customId === NAV_PAGE_STUB) return false;
     const parsed = parseWl(interaction.customId);
     if (!parsed || interaction.guild.id !== parsed.guildId) return false;
     if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
@@ -227,6 +276,7 @@ async function handleWarnlistButton(interaction) {
 }
 
 async function handleBanlistButton(interaction) {
+    if (interaction.customId === NAV_PAGE_STUB) return false;
     const parsed = parseBl(interaction.customId);
     if (!parsed || interaction.guild.id !== parsed.guildId) return false;
     if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
