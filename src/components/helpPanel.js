@@ -111,6 +111,7 @@ function buildCategoryEmbed(key) {
                 `${pre('setwelcome join|leave')} / \`/setwelcome\` — sous-commandes`,
                 `${pre('setjoinvoice')} / \`/setjoinvoice\` — catégorie optionnelle`,
                 `${pre('deletejoinvoice')} / \`/deletejoinvoice\``,
+                `${pre('setmodlogs')} / \`/setmodlogs\` — salon des logs de modération`,
             ].join('\n'),
         },
         utility: {

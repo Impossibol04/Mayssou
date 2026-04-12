@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ChannelType, Collection } = require('discord.js');
-const { buildHelpPayload, resolveHelpCategory } = require('../components/helpPanel');
+const { buildHelpPayload, resolveHelpCategory } = require('../utils/helpPanel');
 
 /**
  * Chaque entrée : commande / slash → même handler que le préfixe (via slashAdapter).
@@ -272,6 +272,15 @@ module.exports = [
         data: new SlashCommandBuilder().setName('deletejoinvoice').setDescription('Supprimer le salon hub vocaux temporaires'),
         commandName: 'deletejoinvoice',
         toArgs: () => [],
+    },
+    {
+        data: new SlashCommandBuilder().setName('setmodlogs').setDescription('Définir le salon des logs de modération')
+            .addChannelOption((o) => o.setName('salon').setDescription('Salon texte (celui-ci par défaut)').addChannelTypes(ChannelType.GuildText).setRequired(false)),
+        commandName: 'setmodlogs',
+        toArgs: (i) => {
+            const c = i.options.getChannel('salon');
+            return c ? [c.id] : [];
+        },
     },
     {
         data: new SlashCommandBuilder().setName('vmute').setDescription('Mute vocal')
