@@ -1,50 +1,64 @@
 const { EmbedBuilder } = require('discord.js');
 const { getGuildConfig } = require('../../utils/guildConfig');
 
+function anonId(userId) {
+    const n = [...userId].reduce((a, c) => a + c.charCodeAt(0), 0) % 9000;
+    return `Anon #${1000 + n}`;
+}
+
 module.exports = async (client, message, args) => {
     const config = getGuildConfig(message.guild.id);
 
-    // Vérifie si on est dans le bon salon
-    if (config.confessInputChannel && message.channel.id !== config.confessInputChannel) {
+    const inputId = config.confessInputChannel || config.confessChannel;
+    if (inputId && message.channel.id !== inputId) {
         await message.delete().catch(() => {});
-        const confessChannel = message.guild.channels.cache.get(config.confessInputChannel);
+        const hint = message.guild.channels.cache.get(inputId);
         const warn = await message.channel.send(
-            `❌ ${message.author}, les confessions ne sont pas autorisées ici. Utilise ${confessChannel} !`
+            `❌ ${message.author}, utilise le salon ${hint || 'configuré'} pour \`+confess\`.`
         );
         setTimeout(() => warn.delete().catch(() => {}), 5000);
         return;
     }
 
-    const confession = args.join(" ");
+    const confession = args.join(' ');
     if (!confession) {
         await message.delete().catch(() => {});
-        const warn = await message.channel.send(`❌ ${message.author}, tu dois écrire un message après \`+confess\`.`);
+        const warn = await message.channel.send(`❌ ${message.author}, écris ton message après \`+confess\`.`);
         setTimeout(() => warn.delete().catch(() => {}), 5000);
         return;
     }
 
     if (!config.confessChannel) {
         await message.delete().catch(() => {});
-        return message.channel.send("❌ Aucun salon configuré. Un admin doit faire `+setconfess #salon`.")
-            .then(m => setTimeout(() => m.delete().catch(() => {}), 5000));
+        return message.channel
+            .send('❌ Aucun salon configuré. Un admin doit faire `+setconfess #salon`.')
+            .then((m) => setTimeout(() => m.delete().catch(() => {}), 5000));
     }
 
     const targetChannel = message.guild.channels.cache.get(config.confessChannel);
-    if (!targetChannel) {
+    if (!targetChannel?.isTextBased()) {
         await message.delete().catch(() => {});
-        return message.channel.send("❌ Le salon configuré est introuvable. Reconfigure avec `+setconfess #salon`.")
-            .then(m => setTimeout(() => m.delete().catch(() => {}), 5000));
+        return message.channel
+            .send('❌ Salon de publication introuvable. Reconfigure avec `+setconfess output #salon`.')
+            .then((m) => setTimeout(() => m.delete().catch(() => {}), 5000));
     }
 
     await message.delete().catch(() => {});
 
+    const stamp = anonId(message.author.id);
     const publicEmbed = new EmbedBuilder()
-        .setTitle("🤫 Nouvelle Confession")
-        .setDescription(`*"${confession}"*`)
-        .setColor("#2f3136")
-        .setFooter({ text: "Utilise +confess pour t'exprimer anonymement" })
+        .setTitle('🤫 Confession')
+        .setDescription(`*"${confession.slice(0, 3500)}"*`)
+        .setColor('#2f3136')
+        .setFooter({ text: `${stamp} · +confess pour participer` })
         .setTimestamp();
 
     await targetChannel.send({ embeds: [publicEmbed] });
-    await message.author.send("✅ Ta confession a été publiée anonymement !").catch(() => {});
+
+    const preview = confession.length > 300 ? `${confession.slice(0, 300)}…` : confession;
+    await message.author
+        .send({
+            content: `✅ Publié anonymement dans **${targetChannel.name}**.\n\n_Aperçu :_ ${preview}`,
+        })
+        .catch(() => {});
 };

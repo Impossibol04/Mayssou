@@ -24,25 +24,30 @@ module.exports = (bot) => {
         const count = recordJoin(guild.id);
 
         const me = guild.members.me;
-        if (!me?.permissions.has(PermissionFlagsBits.ModerateMembers)) return;
 
         if (count >= settings.threshold) {
             clearJoins(guild.id);
             const raidMs = settings.raidDurationSec * 1000;
             const until = markRaid(guild.id, raidMs);
 
-            await sendModLog(bot, guild, {
-                action: 'antiraid',
-                moderator: bot.user,
-                target: member.user,
-                reason: 'Pic d’arrivées détecté',
-                extra: [
-                    { name: 'Arrivées', value: `${count} en ${settings.windowSec}s (seuil ${settings.threshold})`, inline: false },
-                    { name: 'Mode raid jusqu’à', value: `<t:${Math.floor(until / 1000)}:R>`, inline: true },
-                ],
-            }).catch(() => {});
+            if (me?.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                await sendModLog(bot, guild, {
+                    action: 'antiraid',
+                    moderator: bot.user,
+                    target: member.user,
+                    reason: 'Pic d’arrivées détecté',
+                    extra: [
+                        {
+                            name: 'Arrivées',
+                            value: `${count} en ${settings.windowSec}s (seuil ${settings.threshold})`,
+                            inline: false,
+                        },
+                        { name: 'Mode raid jusqu’à', value: `<t:${Math.floor(until / 1000)}:R>`, inline: true },
+                    ],
+                }).catch(() => {});
+            }
 
-            if (settings.verifyBump && me.permissions.has(PermissionFlagsBits.ManageGuild)) {
+            if (settings.verifyBump && me?.permissions.has(PermissionFlagsBits.ManageGuild)) {
                 try {
                     const current = guild.verificationLevel;
                     if (current !== GuildVerificationLevel.VeryHigh) {
@@ -56,23 +61,34 @@ module.exports = (bot) => {
             }
         }
 
-        if (!isRaidActive(guild.id) || !settings.strictNewAccounts) return;
+        if (isRaidActive(guild.id) && settings.strictNewAccounts && me?.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+            const maxAgeMs = settings.newAccountMaxAgeDays * 24 * 60 * 60 * 1000;
+            if (Date.now() - member.user.createdTimestamp < maxAgeMs) {
+                try {
+                    await member.timeout(
+                        10 * 60 * 1000,
+                        `Antiraid : compte récent (< ${settings.newAccountMaxAgeDays}j)`
+                    );
+                    await sendModLog(bot, guild, {
+                        action: 'timeout',
+                        moderator: bot.user,
+                        target: member.user,
+                        reason: `Antiraid strict — compte trop récent`,
+                    });
+                } catch (e) {
+                    console.error('[antiraid] strict timeout:', e.message);
+                }
+            }
+        }
 
-        const maxAgeMs = settings.newAccountMaxAgeDays * 24 * 60 * 60 * 1000;
-        if (Date.now() - member.user.createdTimestamp < maxAgeMs) {
-            try {
-                await member.timeout(
-                    10 * 60 * 1000,
-                    `Antiraid : compte récent (< ${settings.newAccountMaxAgeDays}j)`
-                );
-                await sendModLog(bot, guild, {
-                    action: 'timeout',
-                    moderator: bot.user,
-                    target: member.user,
-                    reason: `Antiraid strict — compte trop récent`,
-                });
-            } catch (e) {
-                console.error('[antiraid] strict timeout:', e.message);
+        if (isRaidActive(guild.id) && settings.quarantineRoleId && me?.permissions.has(PermissionFlagsBits.ManageRoles)) {
+            const qr = guild.roles.cache.get(settings.quarantineRoleId);
+            if (qr && me.roles.highest.position > qr.position && !member.roles.cache.has(qr.id)) {
+                try {
+                    await member.roles.add(qr, 'Antiraid — quarantaine (mode raid)');
+                } catch (e) {
+                    console.error('[antiraid] quarantine role:', e.message);
+                }
             }
         }
     });

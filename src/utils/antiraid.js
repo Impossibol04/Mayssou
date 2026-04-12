@@ -17,6 +17,8 @@ function defaultSettings() {
         newAccountMaxAgeDays: 7,
         raidDurationSec: 600,
         exemptRoleId: null,
+        /** Rôle appliqué aux nouvelles arrivées tant que le mode raid est actif (salon quarantaine, etc.) */
+        quarantineRoleId: null,
     };
 }
 

@@ -24,9 +24,16 @@ module.exports = async (client, message, args) => {
                         : 'Non',
                     inline: false,
                 },
-                { name: 'Durée mode raid', value: `${s.raidDurationSec}s`, inline: true }
+                { name: 'Durée mode raid', value: `${s.raidDurationSec}s`, inline: true },
+                {
+                    name: 'Rôle quarantaine',
+                    value: s.quarantineRoleId ? `<@&${s.quarantineRoleId}>` : 'Non défini',
+                    inline: true,
+                }
             )
-            .setFooter({ text: 'Configure avec : enable | disable | threshold | window | verify | strict | raidlen' });
+            .setFooter({
+                text: 'Sous-commandes : threshold · window · verify · strict · raidlen · exempt · quarantine',
+            });
         return message.channel.send({ embeds: [embed] });
     }
 
@@ -96,7 +103,20 @@ module.exports = async (client, message, args) => {
         return message.reply(`✅ Les membres avec ${role} **ne comptent pas** dans le pic d’arrivées.`);
     }
 
+    if (sub === 'quarantine' || sub === 'iso' || sub === 'isolate') {
+        const role = message.mentions.roles.first();
+        if (!role && ['off', 'none', 'reset'].includes((args[1] || '').toLowerCase())) {
+            saveAntiraidSettings(message.guild.id, { quarantineRoleId: null });
+            return message.reply('✅ Rôle de quarantaine **désactivé**. Crée un rôle sans accès aux salons sensibles.');
+        }
+        if (!role) return message.reply('⚠️ `antiraid quarantine @Rôle` — appliqué aux arrivées **pendant le mode raid**. `off` pour désactiver.');
+        saveAntiraidSettings(message.guild.id, { quarantineRoleId: role.id });
+        return message.reply(
+            `✅ Rôle quarantaine : ${role}. Pendant un raid, chaque nouvelle arrivée le reçoit (permissions bot : gérer les rôles).`
+        );
+    }
+
     return message.reply(
-        '⚠️ Sous-commandes : `status`, `on`, `off`, `threshold`, `window`, `verify`, `strict`, `agedays`, `raidlen`, `exempt`.'
+        '⚠️ Sous-commandes : `status`, `on`, `off`, `threshold`, `window`, `verify`, `strict`, `agedays`, `raidlen`, `exempt`, `quarantine`.'
     );
 };

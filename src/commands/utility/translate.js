@@ -1,34 +1,11 @@
 const { getGuildConfig } = require('../../utils/guildConfig');
+const { translateText } = require('../../utils/translateEngine');
 
-const LANGS = new Set(['en', 'fr', 'es', 'de', 'it', 'pt', 'ru', 'ja', 'zh', 'nl', 'pl', 'ar']);
-
-async function libreTranslate(text, target, source = 'auto') {
-    const endpoints = [
-        'https://libretranslate.de/translate',
-        'https://translate.argosopentech.com/translate',
-    ];
-    const body = JSON.stringify({ q: text, source, target, format: 'text' });
-
-    for (const url of endpoints) {
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body,
-            });
-            if (!res.ok) continue;
-            const j = await res.json();
-            if (j.translatedText) return { ok: true, translatedText: j.translatedText, detected: j.detectedLanguage?.language };
-        } catch {
-            continue;
-        }
-    }
-    return { ok: false };
-}
+const LANGS = new Set(['en', 'fr', 'es', 'de', 'it', 'pt', 'ru', 'ja', 'zh', 'nl', 'pl', 'ar', 'ko']);
 
 module.exports = async (client, message, args) => {
     if (getGuildConfig(message.guild.id).disableTranslate === true)
-        return message.reply('❌ La traduction automatique est **désactivée** sur ce serveur.');
+        return message.reply('❌ La traduction est **désactivée** sur ce serveur (`settranslate`).');
 
     const loc = (getGuildConfig(message.guild.id).locale || 'fr').toLowerCase();
     let target = loc === 'en' ? 'en' : 'fr';
@@ -43,21 +20,30 @@ module.exports = async (client, message, args) => {
 
     if (!text) {
         return message.reply(
-            '⚠️ `translate <texte>` ou `translate <lang> <texte>` (lang : en, fr, es, de, …).\n' +
-                `Langue cible par défaut selon \`language\` du serveur (**${target}**).`
+            '⚠️ `translate <texte>` ou `translate <lang> <texte>`\n' +
+                `Langues : ${[...LANGS].slice(0, 8).join(', ')}…\n` +
+                `Cible par défaut : **${target}** (voir \`language\` du serveur).`
         );
     }
 
     if (text.length > 2000) return message.reply('❌ Texte trop long (max 2000 caractères).');
 
     const wait = await message.reply('🌐 Traduction…');
-    const out = await libreTranslate(text, target, 'auto');
+    const out = await translateText(text, target);
     if (!out.ok) {
-        await wait.edit('❌ Service de traduction indisponible. Réessaie plus tard.');
+        await wait.edit(
+            '❌ Aucun service de traduction disponible. Vérifie la connexion ou installe `google-translate-api-x` (`npm i`).'
+        );
         return;
     }
 
+    const src = out.source === 'google' ? 'Google' : 'LibreTranslate';
     await wait.edit(
-        `**${target.toUpperCase()}**${out.detected ? ` (détecté: ${out.detected})` : ''}\n${out.translatedText}`.slice(0, 2000)
+        (
+            `**${target.toUpperCase()}**` +
+            (out.detected ? ` · détecté \`${out.detected}\`` : '') +
+            ` · _${src}_\n` +
+            out.translatedText
+        ).slice(0, 2000)
     );
 };

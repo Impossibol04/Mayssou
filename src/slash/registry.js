@@ -476,6 +476,43 @@ module.exports = [
         toArgs: (i) => [i.options.getString('message')],
     },
     {
+        data: new SlashCommandBuilder().setName('quiz').setDescription('Quiz interactif (scores sur ce serveur)')
+            .addStringOption((o) =>
+                o.setName('mode')
+                    .setDescription('Thème ou classement')
+                    .setRequired(false)
+                    .addChoices(
+                        { name: 'Mélange', value: 'mix' },
+                        { name: 'Culture G.', value: 'culture' },
+                        { name: 'Anime', value: 'anime' },
+                        { name: 'Gaming', value: 'gaming' },
+                        { name: 'Classement', value: 'top' }
+                    )),
+        commandName: 'quiz',
+        toArgs: (i) => {
+            const m = i.options.getString('mode');
+            return m ? [m] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('minigames').setDescription('Pile ou face, dés, roulette')
+            .addStringOption((o) =>
+                o.setName('jeu')
+                    .setDescription('Jeu')
+                    .setRequired(false)
+                    .addChoices(
+                        { name: 'Aide', value: 'help' },
+                        { name: 'Pile ou face', value: 'pile' },
+                        { name: 'Dé (6 faces)', value: 'dés' },
+                        { name: 'Roulette 0–36', value: 'roulette' }
+                    )),
+        commandName: 'minigames',
+        toArgs: (i) => {
+            const j = i.options.getString('jeu');
+            return j ? [j] : [];
+        },
+    },
+    {
         data: new SlashCommandBuilder().setName('sixseven').setDescription('Référence 6-7'),
         commandName: '67',
         toArgs: () => [],
@@ -525,6 +562,22 @@ module.exports = [
         toArgs: (i) => {
             const a = i.options.getString('action');
             return a ? [a] : [];
+        },
+    },
+    {
+        data: new SlashCommandBuilder().setName('tribunal').setDescription('Tribunal : vote punir / absoudre (2 min)')
+            .addUserOption((o) => o.setName('membre').setDescription('Membre concerné').setRequired(true))
+            .addStringOption((o) =>
+                o.setName('raison').setDescription('Motif visible sur le vote').setRequired(true).setMaxLength(500)),
+        commandName: 'tribunal',
+        toArgs: (i) => [i.options.getUser('membre').id, ...i.options.getString('raison').trim().split(/\s+/)],
+        enrichMentions: async (i) => {
+            const u = i.options.getUser('membre');
+            const mem = await i.guild.members.fetch(u.id).catch(() => null);
+            return {
+                mentionUsers: new Collection([[u.id, u]]),
+                mentionMembers: mem ? new Collection([[mem.id, mem]]) : new Collection(),
+            };
         },
     },
     {

@@ -200,6 +200,8 @@ function addXpMessage(guildId, userId) {
     const now = Date.now();
     const row = db.prepare('SELECT xp, lastXpAt FROM xp_user WHERE guildId = ? AND userId = ?').get(guildId, userId);
     if (row && now - row.lastXpAt < XP_COOLDOWN_MS) return null;
+    const xpBefore = row?.xp ?? 0;
+    const oldLevel = levelFromXp(xpBefore);
     const gain = XP_MIN + Math.floor(Math.random() * (XP_MAX - XP_MIN + 1));
     db.prepare(`
         INSERT INTO xp_user (guildId, userId, xp, lastXpAt) VALUES (?, ?, ?, ?)
@@ -208,7 +210,14 @@ function addXpMessage(guildId, userId) {
             lastXpAt = excluded.lastXpAt
     `).run(guildId, userId, gain, now);
     const r = db.prepare('SELECT xp FROM xp_user WHERE guildId = ? AND userId = ?').get(guildId, userId);
-    return { xp: r.xp, gain, level: levelFromXp(r.xp) };
+    const newLevel = levelFromXp(r.xp);
+    return {
+        xp: r.xp,
+        gain,
+        level: newLevel,
+        leveledUp: newLevel > oldLevel,
+        previousLevel: oldLevel,
+    };
 }
 
 function getXpUser(guildId, userId) {

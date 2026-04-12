@@ -5,6 +5,9 @@ const { applyVoiceUserLimit, buildVoicelimitButtonRow } = require('../components
 const { HELP_SELECT_ID, buildHelpPayload, handleHelpPagination } = require('../components/helpPanel');
 const { handleVoiceOwnerPanelInteraction } = require('../components/voiceOwnerPanel');
 const { handleWarnlistButton, handleBanlistButton } = require('../components/modListPagination');
+const { handlePollButton } = require('../components/pollInteractive');
+const { handleQuizButton } = require('../components/quizInteractive');
+const { handleTribunalButton } = require('../components/tribunalInteractive');
 
 async function registerSlashCommands(client) {
     const token = process.env.token;
@@ -45,6 +48,18 @@ module.exports = (bot) => {
 
     bot.on('interactionCreate', async (interaction) => {
         if (interaction.isButton()) {
+            if (interaction.customId.startsWith('mayssou:pl:')) {
+                const ok = await handlePollButton(interaction);
+                if (ok) return;
+            }
+            if (interaction.customId.startsWith('mayssou:qz:')) {
+                const ok = await handleQuizButton(interaction);
+                if (ok) return;
+            }
+            if (interaction.customId.startsWith('mayssou:tr:')) {
+                const ok = await handleTribunalButton(bot, interaction);
+                if (ok) return;
+            }
             if (interaction.customId.startsWith('mayssou:hp:')) {
                 const ok = await handleHelpPagination(interaction);
                 if (ok) return;

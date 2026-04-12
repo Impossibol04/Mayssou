@@ -15,9 +15,12 @@ const config = {
 };
 
 const path = require('path');
-const { addMessage } = require('./src/utils/statsDB');
+const { addMessage, addXpMessage } = require('./src/utils/statsDB');
 const { checkCooldown } = require('./src/utils/cooldown');
 const { defaultPrefix, resolvePrefix } = require('./src/utils/prefix');
+const { runAutoModeration } = require('./src/utils/autoModeration');
+const { clearAfk, getAfk } = require('./src/utils/afkStore');
+const { syncXpRoles } = require('./src/utils/xpRoleSync');
 
 const bot = new Client({
     intents: [
@@ -141,12 +144,40 @@ process.on('unhandledRejection', (reason) => console.error('Rejet non catché:',
 process.on('uncaughtException', (err) => console.error('Exception non catchée:', err));
 
 bot.on("messageCreate", async (message) => {
-    if (!message.author.bot && message.guild) {
-        addMessage(message.guild.id, message.author.id, message.channel.id);
-    }
-    
+    if (message.author.bot || !message.guild) return;
+
+    const blocked = await runAutoModeration(message);
+    if (blocked) return;
+
+    addMessage(message.guild.id, message.author.id, message.channel.id);
+
     const prefix = resolvePrefix(message.guild);
-    if (message.author.bot || !message.content.startsWith(prefix)) return;
+    const isCommand = message.content.startsWith(prefix);
+
+    clearAfk(message.guild.id, message.author.id);
+
+    if (!isCommand) {
+        const xpRes = addXpMessage(message.guild.id, message.author.id);
+        if (xpRes?.leveledUp) {
+            const mem = await message.guild.members.fetch(message.author.id).catch(() => null);
+            if (mem) await syncXpRoles(mem, xpRes.level).catch(() => {});
+        }
+    }
+
+    const firstMention = !isCommand ? message.mentions.users.first() : null;
+    if (firstMention) {
+        const a = getAfk(message.guild.id, firstMention.id);
+        if (a && firstMention.id !== message.author.id) {
+            await message.channel
+                .send({
+                    content: `💤 **${firstMention.username}** est AFK : ${a.reason} — <t:${Math.floor(a.at / 1000)}:R>`,
+                    allowedMentions: { users: [] },
+                })
+                .catch(() => {});
+        }
+    }
+
+    if (!message.content.startsWith(prefix)) return;
 
     const args = message.content.slice(prefix.length).trim().split(/ +/g);
     const commandName = args.shift().toLowerCase();
