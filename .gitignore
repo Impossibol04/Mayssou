@@ -1,4 +1,7 @@
-src/data/
+# Données runtime (créées / modifiées par le bot en prod)
+src/data/guildConfig.json
+src/data/quizScores.json
+src/data/clans.json
 data_db/
 backup/
 config.json

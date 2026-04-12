@@ -4,12 +4,10 @@ const {
     ButtonBuilder,
     ButtonStyle,
 } = require('discord.js');
-const path = require('path');
 const { addScore } = require('../utils/quizStore');
+const bank = require('../constants/quizBank');
 
 const PREFIX = 'mayssou:qz:';
-
-const bank = require(path.join(__dirname, '../data/quizQuestions.json'));
 
 /** @type {Map<string, { answer: number, authorId: string, guildId: string, category: string }>} */
 const sessions = new Map();
