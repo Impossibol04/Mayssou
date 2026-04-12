@@ -351,7 +351,7 @@ function getCategoryPageDefs(p) {
                 lines: [
                     L(p, 'confess', 'confess', 'Anonyme · **Anon #** stable · aperçu en MP.'),
                     L(p, 'poll', 'poll', '**Boutons** · votes **temps réel** · `Q | A | B` (5 max).'),
-                    L(p, 'clan', 'clan', '**Guilde** : create / join / leave / info / disband.'),
+                    L(p, 'clan', 'clan', '**Clans** : rôle `[TAG]`, XP, `info` (liste), rival, guerre (`/clan`).'),
                     L(p, 'rep', 'rep', '**+1 rep** / jour / personne.'),
                 ],
             },

@@ -908,4 +908,134 @@ module.exports = [
         commandName: 'birthday',
         toArgs: () => [],
     },
+    {
+        data: new SlashCommandBuilder()
+            .setName('clan')
+            .setDescription('Clans : rôle [TAG], XP, rivalités et guerres')
+            .addSubcommand((s) => s.setName('help').setDescription('Aide des commandes clan'))
+            .addSubcommand((s) =>
+                s
+                    .setName('info')
+                    .setDescription('Liste des clans ou fiche détaillée')
+                    .addStringOption((o) => o.setName('tag').setDescription('TAG (vide = liste des clans)').setRequired(false))
+            )
+            .addSubcommand((s) => s.setName('top').setDescription('Classement des clans (XP / niveau)'))
+            .addSubcommand((s) =>
+                s
+                    .setName('create')
+                    .setDescription('Créer un clan (+ rôle Discord)')
+                    .addStringOption((o) =>
+                        o.setName('tag').setDescription('TAG 2–8 caractères').setRequired(true).setMinLength(2).setMaxLength(8)
+                    )
+                    .addStringOption((o) => o.setName('nom').setDescription('Nom du clan').setRequired(false).setMaxLength(80))
+            )
+            .addSubcommand((s) =>
+                s.setName('join').setDescription('Rejoindre un clan').addStringOption((o) => o.setName('tag').setDescription('TAG').setRequired(true))
+            )
+            .addSubcommand((s) => s.setName('leave').setDescription('Quitter ton clan'))
+            .addSubcommand((s) => s.setName('disband').setDescription('Dissoudre le clan (chef)'))
+            .addSubcommand((s) =>
+                s.setName('kick').setDescription('Expulser un membre (chef)').addUserOption((o) => o.setName('membre').setDescription('Membre').setRequired(true))
+            )
+            .addSubcommand((s) =>
+                s
+                    .setName('rename')
+                    .setDescription('Renommer le clan (chef)')
+                    .addStringOption((o) => o.setName('nom').setDescription('Nouveau nom').setRequired(true).setMaxLength(80))
+            )
+            .addSubcommand((s) => s.setName('syncrole').setDescription('Recréer le rôle clan si supprimé (chef)'))
+            .addSubcommand((s) =>
+                s
+                    .setName('transfer')
+                    .setDescription('Transférer le chef de clan')
+                    .addUserOption((o) => o.setName('membre').setDescription('Nouveau chef').setRequired(true))
+            )
+            .addSubcommandGroup((g) =>
+                g
+                    .setName('rival')
+                    .setDescription('Rivalités (chef)')
+                    .addSubcommand((s) =>
+                        s
+                            .setName('add')
+                            .setDescription('Déclarer un clan rival')
+                            .addStringOption((o) => o.setName('tag').setDescription('TAG du clan').setRequired(true))
+                    )
+                    .addSubcommand((s) =>
+                        s
+                            .setName('remove')
+                            .setDescription('Retirer une rivalité')
+                            .addStringOption((o) => o.setName('tag').setDescription('TAG').setRequired(true))
+                    )
+                    .addSubcommand((s) => s.setName('list').setDescription('Liste tes rivaux'))
+            )
+            .addSubcommandGroup((g) =>
+                g
+                    .setName('war')
+                    .setDescription('Guerre entre clans (chef)')
+                    .addSubcommand((s) =>
+                        s
+                            .setName('challenge')
+                            .setDescription('Défier un autre clan')
+                            .addStringOption((o) => o.setName('tag').setDescription('TAG adverse').setRequired(true))
+                    )
+                    .addSubcommand((s) =>
+                        s
+                            .setName('accept')
+                            .setDescription('Accepter un défi de guerre')
+                            .addStringOption((o) => o.setName('tag').setDescription('TAG du clan qui défie').setRequired(true))
+                    )
+                    .addSubcommand((s) => s.setName('cancel').setDescription('Annuler ton défi en attente'))
+                    .addSubcommand((s) => s.setName('surrender').setDescription('Terminer la guerre active'))
+                    .addSubcommand((s) => s.setName('status').setDescription('Voir le statut de guerre'))
+            ),
+        commandName: 'clan',
+        toArgs: (i) => {
+            const grp = i.options.getSubcommandGroup(false);
+            const sub = i.options.getSubcommand();
+            if (grp === 'rival') {
+                if (sub === 'list') return ['rival', 'list'];
+                const tag = i.options.getString('tag', true);
+                return ['rival', sub, tag];
+            }
+            if (grp === 'war') {
+                if (sub === 'cancel') return ['war', 'cancel'];
+                if (sub === 'surrender') return ['war', 'surrender'];
+                if (sub === 'status') return ['war', 'status'];
+                const tag = i.options.getString('tag', true);
+                return ['war', sub, tag];
+            }
+            if (sub === 'help') return ['help'];
+            if (sub === 'info') {
+                const tag = i.options.getString('tag');
+                return tag ? ['info', tag] : ['info'];
+            }
+            if (sub === 'top') return ['top'];
+            if (sub === 'create') {
+                const tag = i.options.getString('tag', true);
+                const nom = i.options.getString('nom');
+                return nom ? ['create', tag, ...nom.trim().split(/\s+/)] : ['create', tag];
+            }
+            if (sub === 'join') return ['join', i.options.getString('tag', true)];
+            if (sub === 'leave') return ['leave'];
+            if (sub === 'disband') return ['disband'];
+            if (sub === 'kick') return ['kick', i.options.getUser('membre', true).id];
+            if (sub === 'rename') return ['rename', i.options.getString('nom', true)];
+            if (sub === 'syncrole') return ['syncrole'];
+            if (sub === 'transfer') return ['transfer', i.options.getUser('membre', true).id];
+            return ['help'];
+        },
+        enrichMentions: async (i) => {
+            const sub = i.options.getSubcommand();
+            if (sub === 'kick' || sub === 'transfer') {
+                const u = i.options.getUser('membre');
+                if (!u) return {};
+                const mem = await i.guild.members.fetch(u.id).catch(() => null);
+                return {
+                    mentionUsers: new Collection([[u.id, u]]),
+                    mentionMembers: mem ? new Collection([[mem.id, mem]]) : new Collection(),
+                };
+            }
+            return {};
+        },
+    },
 ];

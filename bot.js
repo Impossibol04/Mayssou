@@ -21,6 +21,7 @@ const { defaultPrefix, resolvePrefix } = require('./src/utils/prefix');
 const { runAutoModeration } = require('./src/utils/autoModeration');
 const { clearAfk, getAfk } = require('./src/utils/afkStore');
 const { syncXpRoles } = require('./src/utils/xpRoleSync');
+const { addClanXpFromActivity } = require('./src/utils/clanStore');
 
 const bot = new Client({
     intents: [
@@ -159,6 +160,9 @@ bot.on("messageCreate", async (message) => {
 
         if (!isCommand) {
             const xpRes = addXpMessage(message.guild.id, message.author.id);
+            if (xpRes?.gain) {
+                addClanXpFromActivity(message.guild.id, message.author.id, xpRes.gain);
+            }
             if (xpRes?.leveledUp) {
                 const mem = await message.guild.members.fetch(message.author.id).catch(() => null);
                 if (mem) await syncXpRoles(mem, xpRes.level).catch(() => {});
