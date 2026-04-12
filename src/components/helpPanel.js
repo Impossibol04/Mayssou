@@ -2,9 +2,12 @@ const {
     EmbedBuilder,
     ActionRowBuilder,
     StringSelectMenuBuilder,
+    ButtonBuilder,
+    ButtonStyle,
 } = require('discord.js');
 
 const HELP_SELECT_ID = 'mayssou:help';
+const HELP_PAGE_PREFIX = 'mayssou:hp:';
 
 const PREFIX = (process.env.prefix || '+').trim() || '+';
 
@@ -57,15 +60,15 @@ const CATEGORY_ALIASES = {
 
 const CATEGORIES = [
     { value: 'home', label: 'Accueil', emoji: '🏠', desc: 'Guide, préfixe, liens GitHub' },
-    { value: 'moderation', label: 'Modération', emoji: '🛡️', desc: 'Sanctions, warns, salon, vocal staff' },
-    { value: 'config', label: 'Configuration', emoji: '⚙️', desc: 'Préfixe, welcome, confess, modlogs…' },
-    { value: 'utility', label: 'Utilitaire', emoji: '🤓', desc: 'Ping, stats, météo, traduction…' },
-    { value: 'music', label: 'Musique', emoji: '🎵', desc: 'SoundCloud, file, volume, paroles' },
-    { value: 'voice', label: 'Vocal', emoji: '🎙️', desc: 'Hub privé, TTS, limite' },
-    { value: 'social', label: 'Social', emoji: '🤫', desc: 'Confessions, sondages, réputation' },
-    { value: 'fun', label: 'Fun', emoji: '✨', desc: 'Jeux, niveaux, ship…' },
-    { value: 'server', label: 'Serveur', emoji: '🏛️', desc: 'Audit, infos salon/rôle/emoji' },
-    { value: 'security', label: 'Sécurité bot', emoji: '🔐', desc: 'Owner — debug & blacklist' },
+    { value: 'moderation', label: 'Modération', emoji: '🛡️', desc: 'Sanctions, warns, salon, vocal' },
+    { value: 'config', label: 'Configuration', emoji: '⚙️', desc: 'Préfixe, welcome, confess…' },
+    { value: 'utility', label: 'Utilitaire', emoji: '🤓', desc: 'Ping, stats, météo…' },
+    { value: 'music', label: 'Musique', emoji: '🎵', desc: 'SoundCloud, file, volume' },
+    { value: 'voice', label: 'Vocal', emoji: '🎙️', desc: 'Hub, join, TTS, limite' },
+    { value: 'social', label: 'Social', emoji: '🤫', desc: 'Confess, poll, rep' },
+    { value: 'fun', label: 'Fun', emoji: '✨', desc: 'Jeux, XP, ship…' },
+    { value: 'server', label: 'Serveur', emoji: '🏛️', desc: 'Audit, infos' },
+    { value: 'security', label: 'Sécurité bot', emoji: '🔐', desc: 'Owner' },
 ];
 
 function resolveHelpCategory(arg) {
@@ -78,7 +81,7 @@ function buildSelectRow(current) {
     return new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId(HELP_SELECT_ID)
-            .setPlaceholder('✦ Explorer une catégorie…')
+            .setPlaceholder('✦ Choisir une catégorie…')
             .setMinValues(1)
             .setMaxValues(1)
             .addOptions(
@@ -93,7 +96,7 @@ function buildSelectRow(current) {
     );
 }
 
-/** Ligne courte : commande + slash + détail (une phrase). */
+/** Ligne compacte : préfixe + slash + détail */
 function L(p, name, slash, detail) {
     const pr = `\`${p}${name}\``;
     const sl = slash ? ` · \`/${slash}\`` : '';
@@ -114,30 +117,29 @@ function buildHomeEmbed(botIconURL) {
         .setTitle('✦ Centre d’aide Mayssou')
         .setURL(GITHUB_REPO)
         .setDescription(
-            'Bot Discord **modération**, **musique** (SoundCloud), **vocaux temporaires**, **fun** et **outils**.\n\n' +
-                '*Tout est utilisable en **slash** (`/`) ou avec le **préfixe** affiché ci-contre.*'
+            'Bot **modération**, **musique** (SoundCloud), **vocaux temporaires**, **fun** et **outils**.\n\n' +
+                '*Slash (`/`) ou **préfixe** — chaque catégorie s’ouvre sur une **page courte** ; **◀ ▶** pour feuilleter.*'
         )
         .addFields(
             {
-                name: '⌨️ Préfixe sur ce serveur',
-                value: `**Actif :** \`${p}\`\nLes admins peuvent le changer avec \`${p}setprefix\` (1–8 caractères) ou \`${p}setprefix reset\`.\nLes **commandes slash** ne dépendent pas du préfixe.`,
+                name: '⌨️ Préfixe',
+                value: `**Actif :** \`${p}\` · \`${p}setprefix\` / \`reset\` *(admin)*`,
                 inline: false,
             },
             {
                 name: '🔗 Liens',
-                value: `[Profil GitHub — **${GITHUB_USER}**](${GITHUB_PROFILE})\n[Dépôt **Mayssou**](${GITHUB_REPO})`,
+                value: `[**${GITHUB_USER}**](${GITHUB_PROFILE}) · [**Mayssou**](${GITHUB_REPO})`,
                 inline: false,
             },
             {
                 name: '🧭 Navigation',
                 value:
-                    `• \`${p}help\` ou \`/help\` — ce panneau\n` +
-                    `• \`${p}help moderation\` — ouvre une catégorie sans menu\n` +
-                    `• Utilise le **menu déroulant** pour feuilleter toutes les commandes *avec détails*.`,
+                    `Menu **ci-dessous** pour la catégorie · **◀ ▶** quand il y a plusieurs pages\n` +
+                    `\`${p}help moderation\` pour ouvrir direct une rubrique`,
                 inline: false,
             }
         )
-        .setFooter({ text: `Mayssou · Slash + préfixe ${p} · ${GITHUB_USER}` })
+        .setFooter({ text: `Mayssou · ${p} ou /` })
         .setTimestamp();
 
     if (botIconURL) embed.setThumbnail(botIconURL);
@@ -145,243 +147,408 @@ function buildHomeEmbed(botIconURL) {
 }
 
 /**
- * Construit 1 embed d’en-tête + N embeds de sections (plus lisible que un pavé unique).
+ * Données paginées : chaque entrée = une page (description = liste de L()).
+ * Clé = catégorie (hors home).
  */
-function buildCategoryEmbeds(key, botIconURL) {
-    const p = PREFIX;
-    const color = COLORS[key] ?? COLORS.home;
-    const foot = `Menu ci-dessous · ${p} ou / · Page d’aide Mayssou`;
-
-    const authorBase = (title) => {
-        const a = { name: `Mayssou · ${title}`, url: GITHUB_REPO };
-        if (botIconURL) a.iconURL = botIconURL;
-        return a;
+function getCategoryPageDefs(p) {
+    return {
+        moderation: [
+            {
+                emoji: '🛡️',
+                title: 'Modération',
+                hint: 'Messages, slowmode, locks.',
+                lines: [
+                    L(p, 'clear', 'clear', 'Supprime **1–100** messages. *Gérer les messages.*'),
+                    L(p, 'purgeuser', 'purgeuser', 'Purge les messages **d’un membre** dans le salon.'),
+                    L(p, 'slowmode', 'slowmode', 'Mode lent en **secondes**.'),
+                    L(p, 'lock', 'lock', 'Ferme le salon à @everyone.'),
+                    L(p, 'unlock', 'unlock', 'Rouvre le salon.'),
+                ],
+            },
+            {
+                emoji: '🛡️',
+                title: 'Modération',
+                hint: 'Warns & notes staff.',
+                lines: [
+                    L(p, 'warn', 'warn', 'Warn interne + **raison**.'),
+                    L(p, 'warnlist', 'warnlist', 'Tous les warnés (**pages + boutons**) ou détail **@membre**.'),
+                    L(p, 'cleanwarn', 'cleanwarn', 'Efface les warns ; **`all`** → confirmation *(owner / Gérer serveur)*.'),
+                    L(p, 'modnote', 'modnote', 'Notes staff **add / list / del**.'),
+                ],
+            },
+            {
+                emoji: '🛡️',
+                title: 'Modération',
+                hint: 'Bans & exclusions.',
+                lines: [
+                    L(p, 'kick', 'kick', 'Expulsion + raison.'),
+                    L(p, 'ban', 'ban', 'Ban + purge possible.'),
+                    L(p, 'unban', 'unban', 'Déban par **ID** / utilisateur.'),
+                    L(p, 'banlist', 'banlist', 'Liste des bannis · **pagination ◀ ▶**.'),
+                    L(p, 'banmass', 'banmass', 'Jusqu’à **25** cibles · **confirmation boutons**.'),
+                    L(p, 'softban', 'softban', 'Ban + déban pour **purger** l’historique.'),
+                ],
+            },
+            {
+                emoji: '🛡️',
+                title: 'Modération',
+                hint: 'Timeout Discord.',
+                lines: [
+                    L(p, 'timeout', 'timeout', 'Exclusion **minutes**.'),
+                    L(p, 'unmute', 'unmute', 'Fin du timeout.'),
+                    L(p, 'untimeout', 'untimeout', 'Idem **untimeout** Discord.'),
+                ],
+            },
+            {
+                emoji: '🎧',
+                title: 'Modération',
+                hint: 'Vocal, signalement, emoji, trad.',
+                lines: [
+                    L(p, 'vmute', 'vmute', 'Muet **dans le vocal**.'),
+                    L(p, 'vunmute', 'vunmute', 'Rétablit le micro.'),
+                    L(p, 'vdeafen', 'vdeafen', 'Sourd forcé.'),
+                    L(p, 'vundeafen', 'vundeafen', 'Retire le sourd.'),
+                    L(p, 'vkick', 'vkick', 'Déconnecte du **vocal**.'),
+                    L(p, 'vmove', 'vmove', 'Déplace vers un autre vocal.'),
+                    L(p, 'report', 'report', 'Signalement → **modlogs**.'),
+                    L(p, 'antiraid', null, 'Pic d’**arrivées** · on/off · exempt. *Admin.*'),
+                    L(p, 'steal', 'steal', 'Vole un **emoji** (message ou ID).'),
+                    L(p, 'settranslate', null, 'Active / coupe **`translate`** sur le serveur.'),
+                ],
+            },
+            {
+                emoji: '🏷️',
+                title: 'Modération',
+                hint: 'Rôles.',
+                lines: [
+                    L(p, 'addrole', 'addrole', 'Ajoute des **rôles**.'),
+                    L(p, 'removerole', 'removerole', 'Retire des **rôles**.'),
+                ],
+            },
+        ],
+        config: [
+            {
+                emoji: '⚙️',
+                title: 'Configuration',
+                hint: 'Préfixe & langue.',
+                lines: [
+                    L(p, 'setprefix', null, 'Préfixe **1–8** car. ou `reset`. *Admin.*'),
+                    L(p, 'language', null, '`fr` / `en` (ex. **translate**).'),
+                ],
+            },
+            {
+                emoji: '⚙️',
+                title: 'Configuration',
+                hint: 'Salons & hub vocal.',
+                lines: [
+                    L(p, 'setconfess', 'setconfess', 'Salon **confessions**.'),
+                    L(p, 'setwelcome', 'setwelcome', '**join** / **leave** + salons.'),
+                    L(p, 'setmodlogs', 'setmodlogs', 'Salon **logs** modération.'),
+                    L(p, 'setjoinvoice', 'setjoinvoice', 'Hub **Créer un vocal**.'),
+                    L(p, 'deletejoinvoice', 'deletejoinvoice', 'Supprime le hub.'),
+                ],
+            },
+        ],
+        utility: [
+            {
+                emoji: '🤓',
+                title: 'Utilitaire',
+                hint: 'Bot & profils.',
+                lines: [
+                    L(p, 'ping', 'ping', 'Latence bot & **gateway**.'),
+                    L(p, 'uptime', 'uptime', 'Temps depuis le **démarrage**.'),
+                    L(p, 'userinfo', 'userinfo', 'Fiche **utilisateur**.'),
+                    L(p, 'serverinfo', 'serverinfo', 'Fiche **serveur**.'),
+                    L(p, 'stats', 'stats', 'Carte **image** activité.'),
+                    L(p, 'leaderboard', 'leaderboard', 'Classement · **`lb`** · **`top`**.'),
+                ],
+            },
+            {
+                emoji: '🤓',
+                title: 'Utilitaire',
+                hint: 'Snipe, calc, AFK.',
+                lines: [
+                    L(p, 'snipe', 'snipe', 'Dernier message **supprimé**.'),
+                    L(p, 'calc', 'calc', 'Calculatrice.'),
+                    L(p, 'afk', 'afk', 'Statut **AFK** + message.'),
+                ],
+            },
+            {
+                emoji: '🤓',
+                title: 'Utilitaire',
+                hint: 'Web, IA, anniversaires.',
+                lines: [
+                    L(p, 'translate', 'translate', 'Traduction · coupable via `settranslate`.'),
+                    L(p, 'weather', null, 'Météo **ville**.'),
+                    L(p, 'inviteinfo', 'inviteinfo', '**Stats invites** du serveur. *Gérer le serveur.*'),
+                    L(p, 'ask', null, 'IA · *staff + OPENAI_API_KEY*.'),
+                    L(p, 'summarize', null, 'Résumé · *idem*.'),
+                    L(p, 'setbirthday', null, 'Date **JJ/MM** · rappels UTC.'),
+                    L(p, 'birthday', 'birthday', 'Qui a une date enregistrée.'),
+                ],
+            },
+        ],
+        music: [
+            {
+                emoji: '🎵',
+                title: 'Musique',
+                hint: 'Lecture SoundCloud — même **vocal** que le bot.',
+                lines: [
+                    L(p, 'play', 'play', 'Joue · **`-k`** / slash *karaoké*.'),
+                    L(p, 'leave', 'leave', 'Quitte le vocal · vide la session.'),
+                    L(p, 'stop', 'stop', 'Stop & vide la file.'),
+                    L(p, 'pause', 'pause', 'Pause / reprise.'),
+                    L(p, 'skip', 'skip', 'Piste suivante.'),
+                    L(p, 'replay', 'replay', 'Rejoue depuis le début.'),
+                ],
+            },
+            {
+                emoji: '🎵',
+                title: 'Musique',
+                hint: 'File & options.',
+                lines: [
+                    L(p, 'queue', 'queue', 'File · alias **`q`**.'),
+                    L(p, 'nowplaying', 'nowplaying', 'En cours · **`np`**.'),
+                    L(p, 'volume', 'volume', 'Volume.'),
+                    L(p, 'shuffle', 'shuffle', 'Mélange la file.'),
+                    L(p, 'remove', 'remove', 'Retire une position.'),
+                    L(p, 'skipto', 'skipto', 'Saute à une position.'),
+                    L(p, 'seek', 'seek', 'Avance **secondes**.'),
+                    L(p, 'loop', 'loop', 'Boucle file / morceau.'),
+                    L(p, 'autoplay', 'autoplay', 'Enchaîne SoundCloud lié à l’artiste.'),
+                    L(p, 'lyrics', 'lyrics', 'Paroles.'),
+                ],
+            },
+        ],
+        voice: [
+            {
+                emoji: '🎙️',
+                title: 'Vocal',
+                hint: 'Hub temporaire + musique.',
+                lines: [
+                    '**Hub** — `setjoinvoice` : salon **➕ Créer un vocal** → vocal privé + **panneau** (MP ou salon).',
+                    L(p, 'join', 'join', 'Le bot **rejoint ton vocal** pour la musique *(sans lancer de piste)*.'),
+                    L(p, 'voicename', 'voicename', 'Renomme **ton** temporaire.'),
+                    L(p, 'voicelimit', 'voicelimit', 'Limite **0–99** + **boutons** rapides.'),
+                    L(p, 'tts', 'tts', 'Lit un **texte** dans le vocal.'),
+                ],
+            },
+        ],
+        social: [
+            {
+                emoji: '🤫',
+                title: 'Social',
+                hint: 'Confess, sondages, rep.',
+                lines: [
+                    L(p, 'confess', 'confess', 'Confession **anonyme** → salon config.'),
+                    L(p, 'poll', 'poll', '**Sondage**.'),
+                    L(p, 'rep', 'rep', '**+1 rep** / jour / personne.'),
+                ],
+            },
+        ],
+        fun: [
+            {
+                emoji: '✨',
+                title: 'Fun',
+                hint: 'Jeux & images.',
+                lines: [
+                    L(p, '8ball', 'eightball', '8-ball.'),
+                    L(p, 'avatar', 'avatar', 'Avatar.'),
+                    L(p, 'banner', 'banner', 'Bannière.'),
+                    L(p, 'love', 'love', 'Score love.'),
+                    L(p, 'rate', 'rate', 'Note /10.'),
+                    L(p, 'gay', 'gay', 'Humour.'),
+                    L(p, '67', 'sixseven', 'Réf. · `/sixseven`.'),
+                    L(p, 'ship', 'ship', 'Compatibilité.'),
+                ],
+            },
+            {
+                emoji: '✨',
+                title: 'Fun',
+                hint: 'XP.',
+                lines: [L(p, 'level', 'level', 'Niveaux **XP** messages (cooldown).')],
+            },
+        ],
+        server: [
+            {
+                emoji: '🏛️',
+                title: 'Serveur',
+                hint: 'Audit & infos.',
+                lines: [
+                    L(p, 'audit', 'audit', 'Journal **audit**.'),
+                    L(p, 'roleinfo', 'roleinfo', 'Infos **rôle**.'),
+                    L(p, 'channelinfo', 'channelinfo', 'Infos **salon**.'),
+                    L(p, 'emojiinfo', 'emojiinfo', 'Emoji **du serveur**.'),
+                ],
+            },
+        ],
+        security: [
+            {
+                emoji: '🔐',
+                title: 'Sécurité bot',
+                hint: 'Owner · `OWNER_ID`.',
+                lines: [
+                    L(p, 'debug', 'debug', 'État process, ping, mémoire.'),
+                    L(p, 'blacklist', 'blacklist', '`list` · `add` · `remove` — serveurs interdits.'),
+                ],
+            },
+        ],
     };
-
-    const hero = (emoji, title, subtitle) => {
-        const e = new EmbedBuilder()
-            .setColor(color)
-            .setAuthor(authorBase('Aide détaillée'))
-            .setTitle(`${emoji} ${title}`)
-            .setDescription(
-                (
-                    `*${subtitle}*\n\n` +
-                    '━━━━━━━━━━━━━━━━━━\n' +
-                    '**Ci-dessous :** chaque bloc regroupe des commandes **similaires**.\n' +
-                    'La ligne du haut = **préfixe** ; **`/slash`** quand il existe.'
-                ).slice(0, 4096)
-            );
-        if (botIconURL) e.setThumbnail(botIconURL);
-        return e;
-    };
-
-    const section = (title, lines) => {
-        const body = Array.isArray(lines) ? lines.join('\n\n') : lines;
-        return new EmbedBuilder()
-            .setColor(color)
-            .setTitle(title)
-            .setDescription(body.slice(0, 4096));
-    };
-
-    function finalize(embeds) {
-        const last = embeds[embeds.length - 1];
-        last.setFooter({ text: foot }).setTimestamp();
-        return embeds;
-    }
-
-    const sheets = {
-        moderation: () => {
-            const h = hero('🛡️', 'Modération', 'Sanctions, salon, warns et outils staff — permissions Discord selon chaque action.');
-            const e1 = section('🧹 Messages & salon', [
-                L(p, 'clear', 'clear', 'Supprime **1 à 100** messages dans le salon. *Gérer les messages.*'),
-                L(p, 'purgeuser', 'purgeuser', 'Retire les messages **d’un membre** dans le salon (selon limites du bot).'),
-                L(p, 'slowmode', 'slowmode', 'Règle le **mode lent** en secondes sur le salon ciblé.'),
-                L(p, 'lock', 'lock', 'Empêche @everyone d’écrire (sauf permissions override).'),
-                L(p, 'unlock', 'unlock', 'Rouvre le salon pour @everyone.'),
-            ]);
-            const e2 = section('⚠️ Avertissements & notes', [
-                L(p, 'warn', 'warn', 'Ajoute un **warn** interne au bot + raison (historique modération).'),
-                L(p, 'warnlist', 'warnlist', 'Vue **paginée** de tous les membres warnés + boutons ; ou warns d’un **@membre**.'),
-                L(p, 'cleanwarn', 'cleanwarn', 'Efface les warns d’un membre. **`all`** = tout le serveur → **confirmation** (owner / Gérer le serveur).'),
-                L(p, 'modnote', 'modnote', '**Notes staff** (add / list / del) visibles équipe, hors warns publics.'),
-            ]);
-            const e3 = section('🔨 Bans, kicks, timeout', [
-                L(p, 'kick', 'kick', 'Expulse un membre avec raison (optionnelle).'),
-                L(p, 'ban', 'ban', 'Bannit du serveur (purge messages possible selon options Discord).'),
-                L(p, 'unban', 'unban', 'Débannit par **ID** ou utilisateur.'),
-                L(p, 'banlist', 'banlist', 'Liste **tous** les bannis, **pagination** + boutons.'),
-                L(p, 'banmass', 'banmass', 'Jusqu’à **25** cibles (mentions + IDs) ; **embed + boutons** de confirmation obligatoires.'),
-                L(p, 'softban', 'softban', 'Ban puis déban pour **purger** l’historique récent du membre.'),
-                L(p, 'timeout', 'timeout', 'Timeout Discord (**minutes**).'),
-                L(p, 'unmute', 'unmute', 'Retire le timeout (synonyme pratique d’untimeout).'),
-                L(p, 'untimeout', 'untimeout', 'Fin d’exclusion temporaire Discord.'),
-            ]);
-            const e4 = section('🎧 Modération vocale & divers', [
-                L(p, 'vmute', 'vmute', 'Coupe le micro d’un membre **dans le vocal**.'),
-                L(p, 'vunmute', 'vunmute', 'Rétablit le micro.'),
-                L(p, 'vdeafen', 'vdeafen', 'Casque (sourd) forcé dans le vocal.'),
-                L(p, 'vundeafen', 'vundeafen', 'Retire le casque forcé.'),
-                L(p, 'vkick', 'vkick', 'Déconnecte du **salon vocal** uniquement.'),
-                L(p, 'vmove', 'vmove', 'Déplace vers un autre salon vocal.'),
-                L(p, 'report', 'report', 'Envoie un **signalement** vers le salon **modlogs** si configuré.'),
-                L(p, 'antiraid', null, 'Seuil d’**arrivées** / fenêtre, **on/off**, rôle **exempt**. *Admin.*'),
-                L(p, 'steal', 'steal', '**Vole** un emoji (dans le message ou par ID) ; *Gérer emojis*.'),
-                L(p, 'settranslate', null, 'Autorise ou **désactive** la commande `translate` sur le serveur.'),
-            ]);
-            const e5 = section('🏷️ Rôles', [
-                L(p, 'addrole', 'addrole', 'Ajoute un ou plusieurs rôles à un membre.'),
-                L(p, 'removerole', 'removerole', 'Retire des rôles.'),
-            ]);
-            return finalize([h, e1, e2, e3, e4, e5]);
-        },
-        config: () => {
-            const h = hero('⚙️', 'Configuration', 'Paramètres du bot **par serveur** — souvent *Gérer le serveur* ou *Administrateur*.');
-            const e1 = section('Préfixe & langue', [
-                L(p, 'setprefix', null, 'Définit le **préfixe** (1–8 car.) ou `reset` pour l’env. *Admin.*'),
-                L(p, 'language', null, '`fr` / `en` — influence certaines réponses (ex. **translate**).'),
-            ]);
-            const e2 = section('Salons & événements', [
-                L(p, 'setconfess', 'setconfess', 'Salon où arrivent les **confessions** anonymes.'),
-                L(p, 'setwelcome', 'setwelcome', 'Sous-commandes **join** / **leave** + salon pour messages d’accueil ou départ.'),
-                L(p, 'setmodlogs', 'setmodlogs', 'Salon des **logs** de modération (reports, actions, etc.).'),
-            ]);
-            const e3 = section('Vocaux temporaires (hub)', [
-                L(p, 'setjoinvoice', 'setjoinvoice', 'Crée le salon **hub** « Créer un vocal » ; catégorie optionnelle.'),
-                L(p, 'deletejoinvoice', 'deletejoinvoice', 'Supprime le hub et la config associée.'),
-            ]);
-            return finalize([h, e1, e2, e3]);
-        },
-        utility: () => {
-            const h = hero('🤓', 'Utilitaire', 'Infos, stats, outils pratiques et APIs externes.');
-            const e1 = section('Bot & membres', [
-                L(p, 'ping', 'ping', 'Latence **message ↔ bot** et **gateway WebSocket**.'),
-                L(p, 'uptime', 'uptime', 'Temps depuis le **dernier démarrage** du processus.'),
-                L(p, 'userinfo', 'userinfo', 'Fiche **utilisateur** (compte, arrivée, rôles…).'),
-                L(p, 'serverinfo', 'serverinfo', 'Fiche **serveur** (création, boosts, compteurs…).'),
-                L(p, 'stats', 'stats', 'Carte **image** : messages & vocal (avec classements de salons).'),
-                L(p, 'leaderboard', 'leaderboard', 'Classement du serveur ; alias **`lb`**, **`top`**.'),
-            ]);
-            const e2 = section('Contenu & calcul', [
-                L(p, 'snipe', 'snipe', 'Dernier message **supprimé** récent dans le salon.'),
-                L(p, 'calc', 'calc', 'Calculatrice (**expression** math).'),
-                L(p, 'afk', 'afk', 'Statut **AFK** + message ; levé à la prochaine activité.'),
-            ]);
-            const e3 = section('Web & IA', [
-                L(p, 'translate', 'translate', 'Traduction (service externe) — peut être coupé avec `settranslate`.'),
-                L(p, 'weather', null, 'Météo par **ville** (API).'),
-                L(p, 'inviteinfo', 'inviteinfo', '**Stats** des invitations du serveur (nombre, uses, top créateurs, vanity). *Gérer le serveur.*'),
-                L(p, 'ask', null, 'Question à l’IA. *Staff + variable `OPENAI_API_KEY`.*'),
-                L(p, 'summarize', null, 'Résumé de texte. *Idem.*'),
-            ]);
-            const e4 = section('Anniversaires', [
-                L(p, 'setbirthday', null, 'Enregistre ta date (**JJ/MM**) pour rappel serveur (fuseau **UTC** / salon système).'),
-                L(p, 'birthday', 'birthday', 'Voir qui a une date enregistrée.'),
-            ]);
-            return finalize([h, e1, e2, e3, e4]);
-        },
-        music: () => {
-            const h = hero('🎵', 'Musique', 'Lecture **SoundCloud** — tu dois être dans le **même vocal** que le bot pour piloter.');
-            const e1 = section('Lecture & connexion', [
-                L(p, 'play', 'play', 'Recherche et joue un titre. **`-k`** ou option slash *karaoké* pour instrumental.'),
-                L(p, 'leave', 'leave', 'Quitte le vocal et **vide** la session musique du serveur.'),
-                L(p, 'stop', 'stop', 'Arrête la lecture et vide la file.'),
-                L(p, 'pause', 'pause', 'Pause / reprise selon l’état du lecteur.'),
-                L(p, 'skip', 'skip', 'Passe à la **piste suivante**.'),
-                L(p, 'replay', 'replay', 'Rejoue depuis le **début**.'),
-            ]);
-            const e2 = section('File & options', [
-                L(p, 'queue', 'queue', 'Affiche la file ; alias **`q`**.'),
-                L(p, 'nowplaying', 'nowplaying', 'Piste en cours ; alias **`np`**.'),
-                L(p, 'volume', 'volume', 'Volume **0–100** (ou selon limites du bot).'),
-                L(p, 'shuffle', 'shuffle', 'Mélange la **file d’attente**.'),
-                L(p, 'remove', 'remove', 'Retire une piste par **position** dans la file.'),
-                L(p, 'skipto', 'skipto', 'Saute à une **position** donnée.'),
-                L(p, 'seek', 'seek', 'Avance dans la piste (**secondes**).'),
-                L(p, 'loop', 'loop', 'Boucle **file** ou **morceau** selon mode.'),
-                L(p, 'autoplay', 'autoplay', 'Enchaîne des titres **SoundCloud** liés à l’artiste courant.'),
-                L(p, 'lyrics', 'lyrics', 'Paroles (source externe) ; syntaxe selon le bot.'),
-            ]);
-            return finalize([h, e1, e2]);
-        },
-        voice: () => {
-            const h = hero('🎙️', 'Vocal & hub', 'Salons **temporaires** créés depuis un hub + **TTS**.');
-            const e1 = section('Hub & panneau', [
-                '**Hub** — configuré avec `setjoinvoice` : un salon « Créer un vocal » duplique un **vocal privé** pour toi.',
-                '**Panneau propriétaire** — message (salon du vocal ou **MP**) avec boutons : **renommer**, **limite**, **exclure**, **bloquer**, préréglages de places, **fermer le panneau**.',
-            ]);
-            const e2 = section('Commandes', [
-                L(p, 'join', 'join', 'Fait **rejoindre le bot** ton salon vocal pour la musique (sans lancer de piste).'),
-                L(p, 'voicename', 'voicename', 'Renomme **ton** vocal temporaire (préfixe 🔊 géré par le bot).'),
-                L(p, 'voicelimit', 'voicelimit', 'Définit la **limite** (0–99) + message avec **boutons** rapides.'),
-                L(p, 'tts', 'tts', 'Lit un **texte** à voix haute dans le vocal où tu es.'),
-            ]);
-            return finalize([h, e1, e2]);
-        },
-        social: () => {
-            const h = hero('🤫', 'Social', 'Confessions, sondages et réputation légère.');
-            const e1 = section('Commandes', [
-                L(p, 'confess', 'confess', 'Envoie une **confession anonyme** au salon configuré (`setconfess`).'),
-                L(p, 'poll', 'poll', 'Crée un **sondage** (question dans ta commande).'),
-                L(p, 'rep', 'rep', 'Donne **+1 réputation** à quelqu’un (**1 fois / jour / personne**).'),
-            ]);
-            return finalize([h, e1]);
-        },
-        fun: () => {
-            const h = hero('✨', 'Fun', 'Jeux, images et progression **XP** sur les messages.');
-            const e1 = section('Jeux & images', [
-                L(p, '8ball', 'eightball', 'Réponse aléatoire style **magic 8-ball**.'),
-                L(p, 'avatar', 'avatar', 'Affiche l’**avatar** d’un utilisateur.'),
-                L(p, 'banner', 'banner', 'Bannière de profil si visible.'),
-                L(p, 'love', 'love', 'Score **love** entre deux personnes.'),
-                L(p, 'rate', 'rate', 'Note quelque chose sur **10**.'),
-                L(p, 'gay', 'gay', 'Score **humoristique** (à prendre au second degré).'),
-                L(p, '67', 'sixseven', 'Référence communautaire ; slash **`/sixseven`**.'),
-                L(p, 'ship', 'ship', '**Compatibilité** aléatoire entre deux membres.'),
-            ]);
-            const e2 = section('Progression', [
-                L(p, 'level', 'level', 'Niveau **XP** gagné en écrivant (cooldown pour éviter le spam).'),
-            ]);
-            return finalize([h, e1, e2]);
-        },
-        server: () => {
-            const h = hero('🏛️', 'Serveur', 'Audit et fiches **métadonnées** (permissions requises selon la commande).');
-            const e1 = section('Commandes', [
-                L(p, 'audit', 'audit', 'Affiche les **dernières entrées** du journal d’audit (actions staff).'),
-                L(p, 'roleinfo', 'roleinfo', 'Détails d’un **rôle** (membres, couleur, permissions…).'),
-                L(p, 'channelinfo', 'channelinfo', 'Infos sur un **salon** (type, position, slowmode…).'),
-                L(p, 'emojiinfo', 'emojiinfo', 'Infos sur un **emoji du serveur** (pas les Unicode seuls).'),
-            ]);
-            return finalize([h, e1]);
-        },
-        security: () => {
-            const h = hero('🔐', 'Sécurité bot', 'Réservé au **propriétaire** du bot (`OWNER_ID` / variables d’environnement).');
-            const e1 = section('Commandes', [
-                L(p, 'debug', 'debug', 'État du process : **serveurs**, mémoire, **ping WS**, version **Node**, uptime.'),
-                L(p, 'blacklist', 'blacklist', '`list` / `add <id>` / `remove <id>` — serveurs où le bot **refuse** de rester.'),
-            ]);
-            return finalize([h, e1]);
-        },
-    };
-
-    const fn = sheets[key];
-    if (!fn) return [buildHomeEmbed(botIconURL)];
-    return fn();
 }
 
-function buildHelpPayload(categoryKey, client) {
+function getPageArray(cat) {
+    const defs = getCategoryPageDefs(PREFIX)[cat];
+    return defs || null;
+}
+
+function getHelpPageCount(cat) {
+    if (cat === 'home') return 1;
+    const arr = getPageArray(cat);
+    return arr ? arr.length : 1;
+}
+
+function buildCategoryPageEmbed(cat, botIconURL, pageIndex) {
+    const color = COLORS[cat] ?? COLORS.home;
+    const pages = getPageArray(cat);
+    if (!pages?.length) return { embed: buildHomeEmbed(botIconURL), totalPages: 1 };
+
+    const total = pages.length;
+    const p = Math.min(Math.max(0, pageIndex), total - 1);
+    const chunk = pages[p];
+    const body = chunk.lines.join('\n\n');
+
+    const author = { name: 'Mayssou · Aide', url: GITHUB_REPO };
+    if (botIconURL) author.iconURL = botIconURL;
+
+    const embed = new EmbedBuilder()
+        .setColor(color)
+        .setAuthor(author)
+        .setTitle(`${chunk.emoji} ${chunk.title} · **${p + 1}/${total}**`)
+        .setDescription(`*${chunk.hint}*\n\n${body}`.slice(0, 4096))
+        .setTimestamp();
+
+    embed.setFooter({
+        text:
+            total > 1
+                ? `${PREFIX} ou / · ◀ ▶ pour tourner les pages`
+                : `${PREFIX} ou / · Menu pour une autre catégorie`,
+    });
+
+    if (botIconURL) embed.setThumbnail(botIconURL);
+    return { embed, totalPages: total };
+}
+
+function helpPageButtonId(userId, cat, targetPage) {
+    return `${HELP_PAGE_PREFIX}${userId}:${cat}:${targetPage}`;
+}
+
+function buildHelpNavRow(openerUserId, cat, currentPage, totalPages) {
+    if (totalPages <= 1) return null;
+
+    const prev = Math.max(0, currentPage - 1);
+    const next = Math.min(totalPages - 1, currentPage + 1);
+
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(helpPageButtonId(openerUserId, cat, prev))
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('◀')
+            .setDisabled(currentPage <= 0),
+        new ButtonBuilder()
+            .setCustomId(helpPageButtonId(openerUserId, cat, next))
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('▶')
+            .setDisabled(currentPage >= totalPages - 1)
+    );
+}
+
+/**
+ * @param {string} categoryKey
+ * @param {import('discord.js').Client} client
+ * @param {{ openerUserId?: string, page?: number }} [opts]
+ */
+function buildHelpPayload(categoryKey, client, opts = {}) {
     const botIconURL = getBotIconURL(client);
     const cat = resolveHelpCategory(categoryKey);
-    const embeds = cat === 'home' ? [buildHomeEmbed(botIconURL)] : buildCategoryEmbeds(cat, botIconURL);
+    const openerUserId = opts.openerUserId || null;
+    let page = Number.isFinite(opts.page) ? opts.page : 0;
+
+    if (cat === 'home') {
+        return {
+            embeds: [buildHomeEmbed(botIconURL)],
+            components: [buildSelectRow('home')],
+        };
+    }
+
+    const { embed, totalPages } = buildCategoryPageEmbed(cat, botIconURL, page);
+    page = Math.min(Math.max(0, page), totalPages - 1);
+
+    const rows = [buildSelectRow(cat)];
+    const nav = openerUserId ? buildHelpNavRow(openerUserId, cat, page, totalPages) : null;
+    if (nav) rows.push(nav);
+
     return {
-        embeds,
-        components: [buildSelectRow(cat)],
+        embeds: [embed],
+        components: rows,
     };
+}
+
+function parseHelpPageCustomId(customId) {
+    const raw = customId.slice(HELP_PAGE_PREFIX.length);
+    const lastColon = raw.lastIndexOf(':');
+    if (lastColon === -1) return null;
+    const pageStr = raw.slice(lastColon + 1);
+    const rest = raw.slice(0, lastColon);
+    const firstColon = rest.indexOf(':');
+    if (firstColon === -1) return null;
+    const userId = rest.slice(0, firstColon);
+    const category = rest.slice(firstColon + 1);
+    const page = parseInt(pageStr, 10);
+    if (!/^\d{17,20}$/.test(userId) || !/^[a-z]+$/.test(category) || Number.isNaN(page)) return null;
+    return { userId, category, page };
+}
+
+/**
+ * @returns {Promise<boolean>} true si géré
+ */
+async function handleHelpPagination(interaction) {
+    if (!interaction.isButton() || !interaction.customId.startsWith(HELP_PAGE_PREFIX)) return false;
+
+    const parsed = parseHelpPageCustomId(interaction.customId);
+    if (!parsed) return false;
+
+    if (interaction.user.id !== parsed.userId) {
+        await interaction.reply({
+            ephemeral: true,
+            content: '❌ Seul celui qui a ouvert l’aide peut changer de page.',
+        });
+        return true;
+    }
+
+    const total = getHelpPageCount(parsed.category);
+    const clamped = Math.min(Math.max(0, parsed.page), Math.max(0, total - 1));
+
+    try {
+        await interaction.update(
+            buildHelpPayload(parsed.category, interaction.client, {
+                openerUserId: parsed.userId,
+                page: clamped,
+            })
+        );
+    } catch (err) {
+        console.error('help pagination:', err);
+        await interaction.reply({ ephemeral: true, content: '❌ Impossible de mettre à jour l’aide.' }).catch(() => {});
+    }
+    return true;
 }
 
 module.exports = {
     HELP_SELECT_ID,
+    HELP_PAGE_PREFIX,
     resolveHelpCategory,
     buildHelpPayload,
     buildSelectRow,
     getBotIconURL,
+    handleHelpPagination,
+    getHelpPageCount,
 };

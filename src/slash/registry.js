@@ -29,7 +29,9 @@ module.exports = [
         customExecute: async (bot, interaction) => {
             const raw = interaction.options.getString('categorie');
             const cat = resolveHelpCategory(raw || 'home');
-            await interaction.editReply(buildHelpPayload(cat, bot));
+            await interaction.editReply(
+                buildHelpPayload(cat, bot, { openerUserId: interaction.user.id, page: 0 })
+            );
         },
     },
     {

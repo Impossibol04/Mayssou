@@ -2,7 +2,7 @@ const { REST, Routes } = require('discord.js');
 const { createSlashMessageAdapter } = require('../utils/slashAdapter');
 const slashRegistry = require('../slash/registry');
 const { applyVoiceUserLimit, buildVoicelimitButtonRow } = require('../components/voiceLimitShared');
-const { HELP_SELECT_ID, buildHelpPayload } = require('../components/helpPanel');
+const { HELP_SELECT_ID, buildHelpPayload, handleHelpPagination } = require('../components/helpPanel');
 const { handleVoiceOwnerPanelInteraction } = require('../components/voiceOwnerPanel');
 const { handleWarnlistButton, handleBanlistButton } = require('../components/modListPagination');
 
@@ -45,6 +45,10 @@ module.exports = (bot) => {
 
     bot.on('interactionCreate', async (interaction) => {
         if (interaction.isButton()) {
+            if (interaction.customId.startsWith('mayssou:hp:')) {
+                const ok = await handleHelpPagination(interaction);
+                if (ok) return;
+            }
             if (interaction.customId.startsWith('mayssou:wl:')) {
                 const ok = await handleWarnlistButton(interaction);
                 if (ok) return;
@@ -104,7 +108,9 @@ module.exports = (bot) => {
         if (interaction.isStringSelectMenu() && interaction.customId === HELP_SELECT_ID) {
             const cat = interaction.values[0];
             try {
-                await interaction.update(buildHelpPayload(cat, bot));
+                await interaction.update(
+                    buildHelpPayload(cat, bot, { openerUserId: interaction.user.id, page: 0 })
+                );
             } catch (err) {
                 console.error('help select:', err);
                 await interaction.reply({ ephemeral: true, content: '❌ Impossible de mettre à jour l’aide.' }).catch(() => {});
