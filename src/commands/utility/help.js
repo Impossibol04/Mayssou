@@ -4,5 +4,5 @@ module.exports = async (client, message, args) => {
     await message.delete().catch(() => {});
 
     const category = resolveHelpCategory(args[0]);
-    await message.channel.send(buildHelpPayload(category));
+    await message.channel.send(buildHelpPayload(category, client));
 };

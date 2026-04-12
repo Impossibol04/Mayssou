@@ -12,8 +12,13 @@ const GITHUB_USER = 'Impossibol04';
 const GITHUB_PROFILE = `https://github.com/${GITHUB_USER}`;
 const GITHUB_REPO = `https://github.com/${GITHUB_USER}/Mayssou`;
 
-/** Avatar GitHub (image profil, souvent mis en cache par Discord). */
-const GITHUB_AVATAR = `${GITHUB_PROFILE}.png`;
+function getBotIconURL(client) {
+    try {
+        return client?.user?.displayAvatarURL({ extension: 'png', size: 256 }) || undefined;
+    } catch {
+        return undefined;
+    }
+}
 
 const COLORS = {
     home: 0x5865f2,
@@ -88,18 +93,19 @@ function buildSelectRow(current) {
     );
 }
 
-function buildHomeEmbed() {
+function buildHomeEmbed(botIconURL) {
     const p = PREFIX;
-    return new EmbedBuilder()
+    const author = {
+        name: `Mayssou — par ${GITHUB_USER}`,
+        url: GITHUB_PROFILE,
+    };
+    if (botIconURL) author.iconURL = botIconURL;
+
+    const embed = new EmbedBuilder()
         .setColor(COLORS.home)
-        .setAuthor({
-            name: `Mayssou — par ${GITHUB_USER}`,
-            iconURL: GITHUB_AVATAR,
-            url: GITHUB_PROFILE,
-        })
+        .setAuthor(author)
         .setTitle('✦ Centre d’aide')
         .setURL(GITHUB_REPO)
-        .setThumbnail(GITHUB_AVATAR)
         .setDescription(
             [
                 '*Toutes les commandes en **slash** (`/`) ou avec le **préfixe** ci-dessous.*',
@@ -124,9 +130,12 @@ function buildHomeEmbed() {
             text: `Mayssou · Slash / · Préfixe affiché : ${p}`,
         })
         .setTimestamp();
+
+    if (botIconURL) embed.setThumbnail(botIconURL);
+    return embed;
 }
 
-function buildCategoryEmbed(key) {
+function buildCategoryEmbed(key, botIconURL) {
     const p = PREFIX;
     const slash = (name) => `\`/${name}\``;
     const pre = (name) => `\`${p}${name}\``;
@@ -251,17 +260,19 @@ function buildCategoryEmbed(key) {
     };
 
     const sheet = sheets[key];
-    if (!sheet) return buildHomeEmbed();
+    if (!sheet) return buildHomeEmbed(botIconURL);
 
     const desc = `*${sheet.subtitle}*\n\n${sheet.body}`;
 
+    const author = {
+        name: 'Mayssou · Aide',
+        url: GITHUB_REPO,
+    };
+    if (botIconURL) author.iconURL = botIconURL;
+
     return new EmbedBuilder()
         .setColor(color)
-        .setAuthor({
-            name: 'Mayssou · Aide',
-            iconURL: GITHUB_AVATAR,
-            url: GITHUB_REPO,
-        })
+        .setAuthor(author)
         .setTitle(sheet.title)
         .setDescription(desc.slice(0, 4096))
         .setFooter({
@@ -270,9 +281,10 @@ function buildCategoryEmbed(key) {
         .setTimestamp();
 }
 
-function buildHelpPayload(categoryKey) {
+function buildHelpPayload(categoryKey, client) {
+    const botIconURL = getBotIconURL(client);
     const cat = resolveHelpCategory(categoryKey);
-    const embed = cat === 'home' ? buildHomeEmbed() : buildCategoryEmbed(cat);
+    const embed = cat === 'home' ? buildHomeEmbed(botIconURL) : buildCategoryEmbed(cat, botIconURL);
     return {
         embeds: [embed],
         components: [buildSelectRow(cat)],
@@ -284,4 +296,5 @@ module.exports = {
     resolveHelpCategory,
     buildHelpPayload,
     buildSelectRow,
+    getBotIconURL,
 };

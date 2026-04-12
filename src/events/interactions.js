@@ -104,7 +104,7 @@ module.exports = (bot) => {
         if (interaction.isStringSelectMenu() && interaction.customId === HELP_SELECT_ID) {
             const cat = interaction.values[0];
             try {
-                await interaction.update(buildHelpPayload(cat));
+                await interaction.update(buildHelpPayload(cat, bot));
             } catch (err) {
                 console.error('help select:', err);
                 await interaction.reply({ ephemeral: true, content: '❌ Impossible de mettre à jour l’aide.' }).catch(() => {});
