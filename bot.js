@@ -144,39 +144,42 @@ process.on('unhandledRejection', (reason) => console.error('Rejet non catché:',
 process.on('uncaughtException', (err) => console.error('Exception non catchée:', err));
 
 bot.on("messageCreate", async (message) => {
-    if (message.author.bot || !message.guild) return;
+    if (message.author.bot) return;
 
-    const blocked = await runAutoModeration(message);
-    if (blocked) return;
+    if (message.guild) {
+        const blocked = await runAutoModeration(message);
+        if (blocked) return;
 
-    addMessage(message.guild.id, message.author.id, message.channel.id);
+        addMessage(message.guild.id, message.author.id, message.channel.id);
+
+        const prefix = resolvePrefix(message.guild);
+        const isCommand = message.content.startsWith(prefix);
+
+        clearAfk(message.guild.id, message.author.id);
+
+        if (!isCommand) {
+            const xpRes = addXpMessage(message.guild.id, message.author.id);
+            if (xpRes?.leveledUp) {
+                const mem = await message.guild.members.fetch(message.author.id).catch(() => null);
+                if (mem) await syncXpRoles(mem, xpRes.level).catch(() => {});
+            }
+        }
+
+        const firstMention = !isCommand ? message.mentions.users.first() : null;
+        if (firstMention) {
+            const a = getAfk(message.guild.id, firstMention.id);
+            if (a && firstMention.id !== message.author.id) {
+                await message.channel
+                    .send({
+                        content: `💤 **${firstMention.username}** est AFK : ${a.reason} — <t:${Math.floor(a.at / 1000)}:R>`,
+                        allowedMentions: { users: [] },
+                    })
+                    .catch(() => {});
+            }
+        }
+    }
 
     const prefix = resolvePrefix(message.guild);
-    const isCommand = message.content.startsWith(prefix);
-
-    clearAfk(message.guild.id, message.author.id);
-
-    if (!isCommand) {
-        const xpRes = addXpMessage(message.guild.id, message.author.id);
-        if (xpRes?.leveledUp) {
-            const mem = await message.guild.members.fetch(message.author.id).catch(() => null);
-            if (mem) await syncXpRoles(mem, xpRes.level).catch(() => {});
-        }
-    }
-
-    const firstMention = !isCommand ? message.mentions.users.first() : null;
-    if (firstMention) {
-        const a = getAfk(message.guild.id, firstMention.id);
-        if (a && firstMention.id !== message.author.id) {
-            await message.channel
-                .send({
-                    content: `💤 **${firstMention.username}** est AFK : ${a.reason} — <t:${Math.floor(a.at / 1000)}:R>`,
-                    allowedMentions: { users: [] },
-                })
-                .catch(() => {});
-        }
-    }
-
     if (!message.content.startsWith(prefix)) return;
 
     const args = message.content.slice(prefix.length).trim().split(/ +/g);

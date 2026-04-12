@@ -52,16 +52,9 @@ function buildQuizPayload({ authorId, authorTag, guildId, category }) {
         );
     });
 
-    const catLabel =
-        cat === 'mix'
-            ? 'Mélange'
-            : cat === 'culture'
-              ? 'Culture G.'
-              : cat === 'anime'
-                ? 'Anime'
-                : cat === 'gaming'
-                  ? 'Gaming'
-                  : cat;
+    const labelFor = (c) =>
+        c === 'culture' ? 'Culture G.' : c === 'anime' ? 'Anime' : c === 'gaming' ? 'Gaming' : c === 'mix' ? 'Mélange' : c;
+    const catLabel = cat === 'mix' ? `${labelFor('mix')} (${labelFor(realCat)})` : labelFor(cat);
     const embed = new EmbedBuilder()
         .setColor(0x1abc9c)
         .setTitle(`❓ Quiz — ${catLabel}`)
