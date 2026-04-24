@@ -149,6 +149,76 @@ bot.on('warn', (warning) => console.warn('Discord warning:', warning));
 process.on('unhandledRejection', (reason) => console.error('Rejet non catché:', reason));
 process.on('uncaughtException', (err) => console.error('Exception non catchée:', err));
 
+bot.on('interactionCreate', async interaction => {
+    if (!interaction.isButton()) return;
+    if (!interaction.customId.startsWith('music_')) return;
+
+    // On récupère les données musicales (ajuste le chemin si besoin)
+    const { musicData, playNext } = require('./src/utils/musicManager');
+    const data = musicData.get(interaction.guildId);
+
+    if (!data) return interaction.reply({ content: "⚠️ Aucune musique en cours.", ephemeral: true });
+
+    // Vérification : l'utilisateur est-il dans le même vocal ?
+    const vc = interaction.member.voice.channel;
+    const botVc = interaction.guild.members.me?.voice?.channel;
+    if (!vc || !botVc || vc.id !== botVc.id) {
+        return interaction.reply({ content: "❌ Tu dois être dans le même salon vocal !", ephemeral: true });
+    }
+
+    // On exécute l'action selon l'ID du bouton
+    try {
+        switch (interaction.customId) {
+            case 'music_pause':
+                const pauseCmd = require('./src/commands/music/pause');
+                await pauseCmd(bot, interaction, []); // On simule l'appel à pause.js
+                break;
+
+            case 'music_skip':
+                const skipCmd = require('./src/commands/music/skip');
+                await skipCmd(bot, interaction, []);
+                break;
+
+            case 'music_stop':
+                const stopCmd = require('./src/commands/music/stop');
+                await stopCmd(bot, interaction, []);
+                return interaction.message.delete().catch(() => {}); // On supprime le panel à l'arrêt
+
+            case 'music_shuffle':
+                const shuffleCmd = require('./src/commands/music/shuffle');
+                await shuffleCmd(bot, interaction, []);
+                break;
+
+            case 'music_loop':
+                const loopCmd = require('./src/commands/music/loop');
+                await loopCmd(bot, interaction, []);
+                break;
+
+            case 'music_autoplay':
+                const autoplayCmd = require('./src/commands/music/autoplay');
+                await autoplayCmd(bot, interaction, []);
+                break;
+
+            case 'music_replay':
+                const replayCmd = require('./src/commands/music/replay');
+                await replayCmd(bot, interaction, []);
+                break;
+                
+            case 'music_queue':
+                const queueCmd = require('./src/commands/music/queue');
+                await queueCmd(bot, interaction, []);
+                break;
+        }
+
+        // Optionnel : On met à jour l'embed du panel pour refléter les changements (Loop On/Off, etc.)
+        // await interaction.editReply(createMusicPanel(data)); 
+
+    } catch (error) {
+        console.error("Erreur bouton:", error);
+        if (!interaction.replied) await interaction.reply({ content: "❌ Erreur lors de l'action.", ephemeral: true });
+    }
+});
+
 bot.on("messageCreate", async (message) => {
     if (message.author.bot) return;
 

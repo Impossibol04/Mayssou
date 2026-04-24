@@ -55,12 +55,7 @@ module.exports = async (client, message, args) => {
                 adapterCreator: voiceChannel.guild.voiceAdapterCreator,
             });
         }
-
-    const enable = await client.db.get(`tts_${message.guild.id}`);
-    if (!enable) {
-        return message.reply('❌ Le TTS est désactivé sur ce serveur. Activez-le avec `+tts enable` pour utiliser le TTS.');
-    }
-
+        
         const player = createAudioPlayer({
             behaviors: { noSubscriber: NoSubscriberBehavior.Play },
         });
