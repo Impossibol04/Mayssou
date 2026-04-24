@@ -21,3 +21,4 @@ module.exports = async (client, message, args) => {
         message.reply("❌ Une erreur est survenue lors de l'affichage du panel.");
     }
 };
+module.exports.aliases = ['np'];
