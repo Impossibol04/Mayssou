@@ -330,5 +330,5 @@ node bot.js
 
 ---
 
-> Développé avec ❤️ par [Impossibol](https://github.com/Impossibol04)
+> Développé avec passion ❤️ par [Impossibol](https://github.com/Impossibol04)
 </details>
