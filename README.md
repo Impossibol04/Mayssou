@@ -2,6 +2,8 @@
 
 # 🤖 Mayssou — Discord Bot
 
+## With the help of Claude AI !
+
 **[🇬🇧 English](#-english-version) • [🇫🇷 Français](#-version-française)**
 
 </div>
